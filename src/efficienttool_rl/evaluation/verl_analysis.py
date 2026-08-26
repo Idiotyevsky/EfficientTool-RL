@@ -12,6 +12,8 @@ from typing import Any
 from ..rewards import extract_final_answer, task_reward
 
 _TOOL_CALL_BLOCK = re.compile(r"<tool_call>(.*?)</tool_call>", flags=re.DOTALL)
+_TOOL_RESPONSE_BLOCK = re.compile(r"<tool_response>.*?</tool_response>", flags=re.DOTALL)
+_ROLE_LINE = re.compile(r"(?m)^(?:user|assistant|tool)\s*$")
 
 
 def classify_tool_calls(output: str, *, known_tool_names: frozenset[str] = frozenset({"search"})) -> dict[str, int]:
@@ -158,3 +160,188 @@ def read_verl_jsonl(path: str) -> list[dict[str, Any]]:
     """Read a native verl JSONL dump."""
     with open(path, encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
+
+
+def _decoded_tool_calls(output: str) -> list[dict[str, Any]]:
+    """Return syntactically valid tool-call payloads from a raw rollout."""
+    calls: list[dict[str, Any]] = []
+    for block in _TOOL_CALL_BLOCK.findall(output):
+        try:
+            decoded = json.loads(block)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if (
+            isinstance(decoded, dict)
+            and isinstance(decoded.get("name"), str)
+            and decoded["name"].strip()
+            and "arguments" in decoded
+        ):
+            calls.append(decoded)
+    return calls
+
+
+def _generated_text(output: str) -> str:
+    """Remove native tool observations and role separators from model text."""
+    without_observations = _TOOL_RESPONSE_BLOCK.sub("", output)
+    return _ROLE_LINE.sub("", without_observations).strip()
+
+
+def _percentile(values: list[int], fraction: float) -> float:
+    ordered = sorted(values)
+    if not ordered:
+        return 0.0
+    position = (len(ordered) - 1) * fraction
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = position - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+def _numeric_summary(values: list[int]) -> dict[str, float | int]:
+    if not values:
+        return {"count": 0, "mean": 0.0, "min": 0, "p50": 0.0, "p90": 0.0, "max": 0}
+    return {
+        "count": len(values),
+        "mean": statistics.mean(values),
+        "min": min(values),
+        "p50": _percentile(values, 0.50),
+        "p90": _percentile(values, 0.90),
+        "max": max(values),
+    }
+
+
+def _length_histogram(values: list[int]) -> dict[str, int]:
+    boundaries = (
+        (0, 127, "0-127"),
+        (128, 255, "128-255"),
+        (256, 511, "256-511"),
+        (512, 1023, "512-1023"),
+    )
+    histogram = {label: 0 for _, _, label in boundaries}
+    histogram["1024+"] = 0
+    for value in values:
+        for lower, upper, label in boundaries:
+            if lower <= value <= upper:
+                histogram[label] += 1
+                break
+        else:
+            histogram["1024+"] += 1
+    return histogram
+
+
+def analyze_verl_behavior(
+    rows: Sequence[Mapping[str, Any]], *, tokenizer: Any | None = None
+) -> dict[str, Any]:
+    """Summarize native rollout behavior for M4/M5 decisions.
+
+    Native output contains model generations interleaved with tool responses.
+    Search counts use valid JSON calls named search.  ``assistant_turns`` is
+    estimated as one initial generation plus one per tool response, while
+    ``verl_num_turns`` mirrors verl's ``assistant_turns + user_turns + 1``
+    convention under the one-tool-call-per-turn environment used here. Token
+    counts, when a tokenizer is supplied, exclude tool observations.
+    """
+    if not rows:
+        raise ValueError("at least one rollout row is required")
+
+    search_counts: list[int] = []
+    assistant_turn_counts: list[int] = []
+    verl_turn_counts: list[int] = []
+    generated_char_counts: list[int] = []
+    generated_token_counts: list[int] = []
+    em_by_search: dict[int, list[float]] = {}
+    f1_by_search: dict[int, list[float]] = {}
+    valid_by_search: dict[int, list[float]] = {}
+    query_counts: Counter[str] = Counter()
+    duplicate_query_episodes = 0
+    duplicate_query_calls = 0
+    unknown_tool_calls = 0
+    literal_tool_calls = 0
+    valid_tool_calls = 0
+    malformed_tool_calls = 0
+
+    for row in rows:
+        output = row.get("output", "")
+        reference = row.get("gts")
+        if not isinstance(output, str) or not isinstance(reference, str):
+            raise ValueError("each row requires string output and gts fields")
+        calls = _decoded_tool_calls(output)
+        search_calls = [call for call in calls if call["name"].strip() == "search"]
+        search_count = len(search_calls)
+        search_counts.append(search_count)
+        tool_response_count = output.count("<tool_response>")
+        assistant_turns = tool_response_count + (1 if output.strip() else 0)
+        assistant_turn_counts.append(assistant_turns)
+        verl_turn_counts.append(assistant_turns + tool_response_count + 1)
+        generated = _generated_text(output)
+        generated_char_counts.append(len(generated))
+        if tokenizer is not None:
+            generated_token_counts.append(
+                len(tokenizer.encode(generated, add_special_tokens=False))
+            )
+
+        reward = task_reward(output, reference)
+        em_by_search.setdefault(search_count, []).append(float(reward["em"]))
+        f1_by_search.setdefault(search_count, []).append(float(reward["f1"]))
+        valid_by_search.setdefault(search_count, []).append(float(reward["valid_answer"]))
+
+        episode_queries: list[str] = []
+        for call in search_calls:
+            arguments = call.get("arguments")
+            query = arguments.get("query") if isinstance(arguments, dict) else None
+            if isinstance(query, str) and query.strip():
+                normalized = " ".join(query.casefold().split())
+                query_counts[normalized] += 1
+                episode_queries.append(normalized)
+        repeated = len(episode_queries) - len(set(episode_queries))
+        duplicate_query_calls += max(repeated, 0)
+        duplicate_query_episodes += int(repeated > 0)
+
+        tool_stats = classify_tool_calls(output)
+        literal_tool_calls += tool_stats["tool_call_count"]
+        valid_tool_calls += tool_stats["valid_tool_call_count"]
+        malformed_tool_calls += tool_stats["malformed_tool_call_count"]
+        unknown_tool_calls += tool_stats["unknown_tool_call_count"]
+
+    def bucket_metrics(bucket: dict[int, list[float]]) -> dict[int, dict[str, float]]:
+        return {
+            count: {"mean": statistics.mean(values), "count": len(values)}
+            for count, values in sorted(bucket.items())
+        }
+
+    report: dict[str, Any] = {
+        "episodes": len(rows),
+        "avg_search_calls": statistics.mean(search_counts),
+        "search_count_distribution": dict(sorted(Counter(search_counts).items())),
+        # Keep the old keys as aliases for existing summaries, but make the
+        # definition explicit through the new names below.
+        "avg_turns": statistics.mean(assistant_turn_counts),
+        "turn_distribution": dict(sorted(Counter(assistant_turn_counts).items())),
+        "avg_assistant_turns": statistics.mean(assistant_turn_counts),
+        "assistant_turn_distribution": dict(sorted(Counter(assistant_turn_counts).items())),
+        "avg_verl_num_turns_estimate": statistics.mean(verl_turn_counts),
+        "verl_num_turn_distribution_estimate": dict(sorted(Counter(verl_turn_counts).items())),
+        "generated_character_stats": _numeric_summary(generated_char_counts),
+        "duplicate_query_rate": duplicate_query_calls / max(sum(search_counts), 1),
+        "duplicate_query_episode_rate": duplicate_query_episodes / len(rows),
+        "unique_query_count": len(query_counts),
+        "no_search_answer_rate": sum(
+            bool(extract_final_answer(str(row.get("output", "")))) and count == 0
+            for row, count in zip(rows, search_counts)
+        )
+        / len(rows),
+        "accuracy_by_search_count": {
+            "em": bucket_metrics(em_by_search),
+            "f1": bucket_metrics(f1_by_search),
+            "valid_answer": bucket_metrics(valid_by_search),
+        },
+        "literal_tool_call_count": literal_tool_calls,
+        "valid_tool_call_count": valid_tool_calls,
+        "malformed_tool_call_count": malformed_tool_calls,
+        "unknown_tool_call_count": unknown_tool_calls,
+        "malformed_tool_call_rate": malformed_tool_calls / max(literal_tool_calls, 1),
+    }
+    if tokenizer is not None:
+        report["generated_token_stats"] = _numeric_summary(generated_token_counts)
+        report["generated_token_histogram"] = _length_histogram(generated_token_counts)
+    return report
