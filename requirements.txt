@@ -1,0 +1,6 @@
+# Install the lightweight package and its local test/data/model dependencies.
+-e .[test,data,hf]
+
+# The rollout stack is hardware- and CUDA-dependent. Install a compatible
+# verl/vLLM pair separately; see README.md and docs/environment_report.md.
+hydra-core>=1.3

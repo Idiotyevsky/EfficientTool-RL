@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.env
+.venv/
+build/
+dist/
+*.egg-info/
+outputs/
+
+# Local datasets, checkpoints, caches, and experiment logs.
+data/*.jsonl
+data/*.parquet
+data/*.manifest.json
+datasets/
+checkpoints/
+runs/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.log
+.cache/
+.huggingface/

@@ -1,0 +1,119 @@
+hydra:
+  searchpath:
+    - file://${oc.env:VERL_CONFIG_PATH}
+
+defaults:
+  - ppo_trainer
+  - _self_
+
+data:
+  train_files: ${oc.env:ETRL_DATA_DIR}/verl_hotpotqa_train_500.parquet
+  val_files: ${oc.env:ETRL_DATA_DIR}/verl_hotpotqa_val_100.parquet
+  apply_chat_template_kwargs:
+    enable_thinking: false
+  train_max_samples: 8
+  val_max_samples: 8
+  train_batch_size: 8
+  val_batch_size: 8
+  max_prompt_length: 2048
+  max_response_length: 1024
+  return_raw_chat: true
+  filter_overlong_prompts: true
+  filter_overlong_prompts_workers: 1
+  truncation: error
+  shuffle: false
+  seed: 42
+  dataloader_num_workers: 0
+
+actor_rollout_ref:
+  hybrid_engine: true
+  model:
+    path: ${oc.env:ETRL_MODEL}
+    trust_remote_code: true
+    use_remove_padding: true
+    enable_gradient_checkpointing: true
+  actor:
+    optim:
+      lr: 1.0e-6
+    ppo_mini_batch_size: 8
+    ppo_micro_batch_size_per_gpu: 1
+    ppo_max_token_len_per_gpu: 4096
+    use_kl_loss: true
+    kl_loss_coef: 0.001
+    kl_loss_type: low_var_kl
+    entropy_coeff: 0
+    use_torch_compile: false
+    fsdp_config:
+      param_offload: true
+      optimizer_offload: true
+  ref:
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_max_token_len_per_gpu: 4096
+    fsdp_config:
+      param_offload: true
+  rollout:
+    name: vllm
+    mode: async
+    n: 4
+    temperature: 0.8
+    top_p: 0.95
+    do_sample: true
+    tensor_model_parallel_size: 1
+    gpu_memory_utilization: 0.35
+    max_num_batched_tokens: 4096
+    max_num_seqs: 32
+    max_model_len: 4096
+    enforce_eager: true
+    enable_chunked_prefill: false
+    enable_prefix_caching: false
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_max_token_len_per_gpu: 4096
+    multi_turn:
+      enable: true
+      max_assistant_turns: 5
+      max_user_turns: 5
+      max_parallel_calls: 1
+      max_tool_response_length: 2048
+      tool_response_truncate_side: middle
+      format: hermes
+      tool_config_path: ${oc.env:ETRL_ROOT}/configs/tool_config/hotpot_search.yaml
+      tokenization_sanity_check_mode: strict
+      use_inference_chat_template: false
+    agent:
+      num_workers: 4
+      default_agent_loop: tool_agent
+
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+  norm_adv_by_std_in_grpo: true
+
+reward_model:
+  enable: false
+  reward_manager: naive
+
+custom_reward_function:
+  path: ${oc.env:ETRL_ROOT}/rewards/task_reward.py
+  name: compute_score
+
+trainer:
+  total_training_steps: 1
+  total_epochs: 1
+  n_gpus_per_node: 1
+  nnodes: 1
+  val_before_train: true
+  test_freq: 1
+  save_freq: 1
+  max_actor_ckpt_to_keep: 1
+  logger: [console]
+  project_name: efficienttool_rl
+  experiment_name: m3_sanity
+  resume_mode: disable
+  default_local_dir: ${oc.env:ETRL_RUN_DIR}/m3_sanity
+  rollout_data_dir: ${oc.env:ETRL_RUN_DIR}/m3_sanity/rollouts
+  validation_data_dir: ${oc.env:ETRL_RUN_DIR}/m3_sanity/validation
+
+ray_kwargs:
+  ray_init:
+    address: local
+    num_cpus: 8

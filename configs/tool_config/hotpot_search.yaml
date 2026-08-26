@@ -1,0 +1,23 @@
+tools:
+  - class_name: "efficienttool_rl.verl.search_tool.HotpotSearchTool"
+    config:
+      type: native
+      top_k: 3
+      max_top_k: 3
+      max_observation_tokens: 512
+    tool_schema:
+      type: function
+      function:
+        name: search
+        description: Search deterministic local HotpotQA evidence passages.
+        parameters:
+          type: object
+          properties:
+            query:
+              type: string
+              description: A concise entity-specific evidence query.
+            top_k:
+              type: integer
+              description: Maximum number of passages to return.
+          required:
+            - query
