@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from efficienttool_rl.agent import AgentConfig, AgentRunner, JsonlTrajectoryWriter
-from efficienttool_rl.data import load_hotpotqa
+from efficienttool_rl.data import is_two_hop_candidate, load_hotpotqa
 from efficienttool_rl.evaluation import answer_metrics, summarize_episodes
 from efficienttool_rl.policies import TransformersToolPolicy
 from efficienttool_rl.protocol import SYSTEM_PROMPT
@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         choices=("easy", "medium", "hard"),
         help="Optional difficulty filter applied before start-index/limit.",
+    )
+    parser.add_argument(
+        "--require-two-hop",
+        action="store_true",
+        help="Keep bridge rows whose question-level top-1 hop is incomplete.",
     )
     parser.add_argument("--max-turns", type=int, default=5)
     parser.add_argument("--max-search-calls", type=int, default=3)
@@ -81,6 +86,15 @@ def main() -> None:
     if args.levels:
         allowed_levels = set(args.levels)
         examples = [example for example in examples if example.level in allowed_levels]
+    if args.require_two_hop:
+        examples = [
+            example
+            for example in examples
+            if is_two_hop_candidate(
+                example,
+                max_observation_tokens=args.max_observation_tokens,
+            )
+        ]
     selected = examples[args.start_index : args.start_index + args.limit]
     if len(selected) != args.limit:
         raise ValueError("requested range exceeds the dataset")
@@ -168,6 +182,7 @@ def main() -> None:
         "limit": args.limit,
         "question_type": args.question_type,
         "levels": args.levels,
+        "require_two_hop": args.require_two_hop,
         "max_turns": args.max_turns,
         "max_search_calls": args.max_search_calls,
             "top_k": args.top_k,
