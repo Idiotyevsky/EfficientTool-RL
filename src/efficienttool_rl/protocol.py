@@ -12,7 +12,7 @@ SYSTEM_PROMPT = """You are a multi-hop question-answering tool agent.
 Use search to gather evidence for every entity needed by the question. Prefer
 concise, entity-specific queries and avoid repeating a query. Search again when
 the current evidence leaves any required entity unresolved. Emit exactly one action per turn: either
-<tool_call>{"name":"search","arguments":{"query":"...","top_k":3}}</tool_call>
+<tool_call>{"name":"search","arguments":{"query":"..."}}</tool_call>
 or <answer>minimal answer span</answer>. The answer block must contain only the
 answer, never an explanation or full sentence. For yes/no questions, output
 exactly <answer>yes</answer> or <answer>no</answer>. Do not add text outside the
@@ -33,7 +33,9 @@ SEARCH_TOOL_SCHEMA: dict[str, Any] = {
                 },
                 "top_k": {
                     "type": "integer",
-                    "description": "Number of results, from 1 to 3.",
+                    "description": "Optional result count; the environment applies its configured cap.",
+                    "minimum": 1,
+                    "maximum": 3,
                 },
             },
             "required": ["query"],
@@ -71,6 +73,7 @@ class InvalidAction:
 ParsedAction: TypeAlias = ToolCall | FinalAnswer | InvalidAction
 
 _OPENING_TAG = re.compile(r"<(?:tool_call|answer)>")
+_TOOL_CALL_OPENING = re.compile(r"<tool_call>")
 _ACTION_BLOCK = re.compile(
     r"<(tool_call|answer)>(.*?)</\1>",
     flags=re.DOTALL,
@@ -117,6 +120,13 @@ def parse_action(text: str) -> ParsedAction:
     if not isinstance(arguments, dict):
         return invalid("invalid_arguments", "Tool arguments must be a JSON object.")
     return ToolCall(name=name.strip(), arguments=arguments)
+
+
+def count_tool_call_attempts(text: str) -> int:
+    """Count emitted tool-call openings, including malformed/unclosed calls."""
+    if not isinstance(text, str):
+        return 0
+    return len(_TOOL_CALL_OPENING.findall(text))
 
 
 def canonicalize_action_text(text: str) -> str:

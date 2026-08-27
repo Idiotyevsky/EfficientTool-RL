@@ -32,6 +32,9 @@ def test_verl_record_keeps_answer_out_of_tool_kwargs():
     kwargs = record["extra_info"]["tools_kwargs"]["search"]["create_kwargs"]
     assert "answer" not in kwargs
     assert kwargs["passages"][0]["text"] == "Ada was born in London."
+    assert kwargs["max_executed_search_calls"] == 3
+    assert record["extra_info"]["question_type"] == "unknown"
+    assert "supporting_titles" not in kwargs
 
 
 def test_hotpot_search_tool_executes_isolated_bm25():
@@ -49,3 +52,28 @@ def test_hotpot_search_tool_executes_isolated_bm25():
     assert payload["results"][0]["title"] == "A"
     assert reward == 0.0
     assert metrics["search_calls"] == 1
+
+
+def test_hotpot_search_tool_enforces_per_instance_execution_budget():
+    async def run():
+        tool = HotpotSearchTool(
+            {"top_k": 1, "max_top_k": 1, "max_executed_search_calls": 1}, schema()
+        )
+        instance_id, _ = await tool.create(
+            create_kwargs={
+                "passages": [{"title": p.title, "text": p.text} for p in example().passages],
+                "max_top_k": 1,
+                "max_executed_search_calls": 1,
+            }
+        )
+        first, _, first_metrics = await tool.execute(instance_id, {"query": "born London"})
+        second, _, second_metrics = await tool.execute(instance_id, {"query": "born London"})
+        await tool.release(instance_id)
+        return json.loads(first.text), first_metrics, json.loads(second.text), second_metrics
+
+    first, first_metrics, second, second_metrics = asyncio.run(run())
+    assert first["ok"] is True
+    assert first_metrics["executed_search_calls"] == 1
+    assert second["ok"] is False
+    assert second["error"]["code"] == "tool_budget_exhausted"
+    assert second_metrics["executed_search_calls"] == 0

@@ -44,6 +44,12 @@ retraining is active before the final M4 claim is accepted.
 
 - The formal 2k vanilla GRPO experiment is running with the canonical loop so
   training-time and evaluation-time trajectory semantics are identical.
+- Search statistics now distinguish attempted, valid, executed, useful, and
+  wasted calls; the historical canonical evaluator has been replayed under
+  the new executed-call definition.
+- Hotpot-MT scaffolding is ready: official `type`/`level` metadata is retained,
+  bridge/level filtering is available, and the native/local environment can
+  enforce top-k and executed-search budgets consistently.
 
 # Blockers
 
@@ -53,7 +59,7 @@ retraining is active before the final M4 claim is accepted.
 
 # Latest Evidence
 
-- Deterministic/unit tests: 47/47 passed (one upstream warning).
+- Deterministic/unit tests: 50/50 passed (one upstream warning).
 - Held-out 60: EM 0.400, F1 0.506, completion 100%.
 - Average search calls: 1.000; average turns: 2.017.
 - Average supporting-title recall: 0.775.
@@ -101,6 +107,10 @@ retraining is active before the final M4 claim is accepted.
   approved 2,000-example, 62-update configuration. At the latest checkpoint
   it had reached 7/62 updates with rollout files through `6.jsonl` and no
   OOM or traceback; final metrics are intentionally pending.
+- Replaying the canonical held-out outputs with executed-response accounting
+  gives base/final average executed searches of 0.92/0.91, versus 1.00/1.00
+  raw valid-call tags; useful-search rates are not inferred for unrun
+  experiments and remain tied to stored trajectory evidence.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency, not yet justification for launching cost shaping.
@@ -123,7 +133,9 @@ retraining is active before the final M4 claim is accepted.
 # Next Actions
 
 1. Let the canonical-loop 2k vanilla GRPO run finish and preserve its logs.
-2. Evaluate its held-out checkpoint against the canonical base protocol and
-   inspect at least 20 successes and 20 failures.
-3. Only after the M4 gate is accepted, decide whether M5 should penalize
-   search calls, redundant queries, or token/trajectory cost.
+2. Materialize filtered Hotpot-MT train/validation parquet with bridge
+   questions, `top_k=1`, 384-token observations, and a three-search budget.
+3. Run a 100–200-example ReAct pilot and verify executed `search >= 2` and
+   useful second-search behavior before starting another GRPO run.
+4. Only after that pilot and the new vanilla GRPO gate pass, choose a
+   success-gated waste-aware cost reward for M5.

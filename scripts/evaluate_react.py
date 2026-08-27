@@ -28,6 +28,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-turns", type=int, default=5)
     parser.add_argument("--max-search-calls", type=int, default=3)
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument(
+        "--max-top-k",
+        type=int,
+        help="Hard environment cap on results per search; defaults to --top-k.",
+    )
     parser.add_argument("--max-observation-tokens", type=int, default=512)
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--seed", type=int, default=42)
@@ -50,6 +55,11 @@ def main() -> None:
     args = parse_args()
     if args.limit < 1 or args.start_index < 0:
         raise ValueError("limit must be positive and start-index non-negative")
+    if args.max_search_calls < 0 or args.top_k < 1:
+        raise ValueError("max-search-calls must be non-negative and top-k must be positive")
+    max_top_k = args.top_k if args.max_top_k is None else args.max_top_k
+    if max_top_k < 1 or args.top_k > max_top_k:
+        raise ValueError("max-top-k must be positive and at least top-k")
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         raise FileExistsError(f"refusing to overwrite non-empty run: {args.output_dir}")
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -78,7 +88,7 @@ def main() -> None:
 
         def bounded_search(arguments: dict[str, object]) -> list[dict[str, object]]:
             supplied = dict(arguments)
-            supplied["top_k"] = min(int(supplied.get("top_k", args.top_k)), 5)
+            supplied["top_k"] = min(int(supplied.get("top_k", args.top_k)), max_top_k)
             return search.tool(supplied)
 
         runner = AgentRunner(
@@ -142,7 +152,8 @@ def main() -> None:
         "limit": args.limit,
         "max_turns": args.max_turns,
         "max_search_calls": args.max_search_calls,
-        "top_k": args.top_k,
+            "top_k": args.top_k,
+            "max_top_k": max_top_k,
         "max_observation_tokens": args.max_observation_tokens,
         "max_new_tokens": args.max_new_tokens,
         "seed": args.seed,

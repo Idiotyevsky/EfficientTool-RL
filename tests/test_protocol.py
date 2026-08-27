@@ -5,6 +5,7 @@ from efficienttool_rl.protocol import (
     InvalidAction,
     ToolCall,
     canonicalize_action_text,
+    count_tool_call_attempts,
     parse_action,
 )
 
@@ -58,3 +59,8 @@ def test_non_string_output_is_invalid() -> None:
     action = parse_action(None)  # type: ignore[arg-type]
     assert isinstance(action, InvalidAction)
     assert action.code == "invalid_output_type"
+
+
+def test_tool_call_attempt_count_includes_unclosed_and_repeated_blocks() -> None:
+    text = '<tool_call>{bad}</tool_call><tool_call>{"name":"search"}'
+    assert count_tool_call_attempts(text) == 2

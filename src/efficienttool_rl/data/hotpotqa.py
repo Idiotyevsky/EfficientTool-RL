@@ -22,6 +22,13 @@ class HotpotExample:
     passages: tuple[Passage, ...]
     supporting_titles: tuple[str, ...]
     split: str
+    question_type: str = "unknown"
+    level: str = "unknown"
+
+    @property
+    def type(self) -> str:
+        """Official HotpotQA metadata name, kept as a readable alias."""
+        return self.question_type
 
 
 def _required_string(item: dict[str, Any], key: str, index: int) -> str:
@@ -29,6 +36,14 @@ def _required_string(item: dict[str, Any], key: str, index: int) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"example {index}: {key!r} must be a non-empty string")
     return value.strip()
+
+
+def _metadata_string(item: dict[str, Any], key: str, index: int) -> str:
+    """Read optional official metadata while keeping legacy fixtures valid."""
+    value = item.get(key, "unknown")
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"example {index}: {key!r} must be a non-empty string when present")
+    return value.strip().lower()
 
 
 def _read_records(path: Path) -> list[Any]:
@@ -99,6 +114,8 @@ def load_hotpotqa(path: str | Path, split: str) -> list[HotpotExample]:
                 passages=tuple(passages),
                 supporting_titles=tuple(supporting_titles),
                 split=split,
+                question_type=_metadata_string(item, "type", index),
+                level=_metadata_string(item, "level", index),
             )
         )
     return examples

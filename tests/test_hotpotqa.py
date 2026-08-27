@@ -14,6 +14,8 @@ def test_load_official_hotpot_shape(tmp_path):
                     "_id": "q1",
                     "question": "Where was Ada born?",
                     "answer": "London",
+                    "type": "bridge",
+                    "level": "medium",
                     "supporting_facts": [["Ada Lovelace", 0], ["London", 1]],
                     "context": [
                         ["Ada Lovelace", ["Ada was born in London."]],
@@ -29,6 +31,8 @@ def test_load_official_hotpot_shape(tmp_path):
     assert example.split == "dev"
     assert example.passages[0].text == "Ada was born in London."
     assert example.supporting_titles == ("Ada Lovelace", "London")
+    assert example.question_type == "bridge"
+    assert example.level == "medium"
 
 
 def test_loader_rejects_duplicate_ids(tmp_path):

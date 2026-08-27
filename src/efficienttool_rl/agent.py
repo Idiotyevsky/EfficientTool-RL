@@ -13,6 +13,7 @@ from .protocol import (
     InvalidAction,
     ToolCall,
     canonicalize_action_text,
+    count_tool_call_attempts,
     parse_action,
 )
 
@@ -43,6 +44,7 @@ class EpisodeStep:
     action: dict[str, Any]
     observation: dict[str, Any] | None
     terminated: bool
+    tool_executed: bool = False
 
 
 @dataclass
@@ -54,6 +56,10 @@ class EpisodeResult:
     termination_reason: str
     tool_calls: int
     invalid_actions: int
+    attempted_tool_calls: int
+    valid_tool_calls: int
+    executed_tool_calls: int
+    executed_search_calls: int
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -91,15 +97,21 @@ class AgentRunner:
             {"role": "user", "content": prompt},
         ]
         steps: list[EpisodeStep] = []
-        tool_calls = 0
+        attempted_tool_calls = 0
+        valid_tool_calls = 0
+        executed_tool_calls = 0
+        executed_search_calls = 0
         invalid_actions = 0
 
         for turn in range(self.config.max_turns):
             model_output = canonicalize_action_text(self.policy.generate(tuple(messages)))
+            attempted_tool_calls += count_tool_call_attempts(model_output)
             action = parse_action(model_output)
+            valid_tool_calls += int(isinstance(action, ToolCall))
             observation: dict[str, Any] | None = None
             termination_reason: str | None = None
             final_answer: str | None = None
+            tool_executed = False
 
             if isinstance(action, FinalAnswer):
                 final_answer = action.answer
@@ -108,9 +120,11 @@ class AgentRunner:
                 invalid_actions += 1
                 observation = self._error_observation(action.code, action.message)
             else:
-                observation, executed, terminal = self._execute_tool(action, tool_calls)
+                observation, executed, terminal = self._execute_tool(action, executed_tool_calls)
                 if executed:
-                    tool_calls += 1
+                    executed_tool_calls += 1
+                    executed_search_calls += int(action.name == "search")
+                    tool_executed = True
                 if not observation["ok"]:
                     invalid_actions += int(observation["error"]["code"] == "unknown_tool")
                 if terminal:
@@ -123,6 +137,7 @@ class AgentRunner:
                     action=action.to_dict(),
                     observation=observation,
                     terminated=termination_reason is not None,
+                    tool_executed=tool_executed,
                 )
             )
             if termination_reason is not None:
@@ -132,8 +147,12 @@ class AgentRunner:
                     steps=steps,
                     final_answer=final_answer,
                     termination_reason=termination_reason,
-                    tool_calls=tool_calls,
+                    tool_calls=executed_tool_calls,
                     invalid_actions=invalid_actions,
+                    attempted_tool_calls=attempted_tool_calls,
+                    valid_tool_calls=valid_tool_calls,
+                    executed_tool_calls=executed_tool_calls,
+                    executed_search_calls=executed_search_calls,
                 )
 
             messages.append({"role": "assistant", "content": model_output})
@@ -153,8 +172,12 @@ class AgentRunner:
             steps=steps,
             final_answer=None,
             termination_reason="max_turns",
-            tool_calls=tool_calls,
+            tool_calls=executed_tool_calls,
             invalid_actions=invalid_actions,
+            attempted_tool_calls=attempted_tool_calls,
+            valid_tool_calls=valid_tool_calls,
+            executed_tool_calls=executed_tool_calls,
+            executed_search_calls=executed_search_calls,
         )
 
     def _execute_tool(

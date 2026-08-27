@@ -11,9 +11,9 @@ search-cost shaping is introduced.
 ## Status
 
 M0–M3 are accepted: environment, agent protocol, ReAct baseline, and the
-GRPO learning-signal sanity gate. The 500-example vanilla GRPO experiment is
-in progress; final M4/M5 numbers remain `TBD` until held-out evaluation is
-complete.
+GRPO learning-signal sanity gate. The canonical 2,000-example vanilla GRPO
+run is in progress. A new Hotpot-MT pilot will establish genuine multi-turn
+retrieval before any cost-aware M5 experiment; final claims remain `TBD`.
 
 ## Architecture
 
@@ -27,7 +27,10 @@ HotpotQA passages → local BM25 search → multi-turn Agent loop
 
 The repository keeps tools, environment data, rewards, training, evaluation,
 and analysis separate. Gold answers are available only to offline reward and
-evaluation code, never to the search tool.
+evaluation code, never to the search tool. The next experiment uses a
+bridge-focused Hotpot-MT profile with one result per search and an explicit
+three-search execution budget, so multi-turn retrieval is required by the
+information structure rather than by a search penalty.
 
 ## Quick start
 
@@ -63,3 +66,8 @@ Every run must use a unique output directory and retain its resolved config,
 logs, rollouts, and metrics. See [AGENTS.md](AGENTS.md),
 [PROGRESS.md](PROGRESS.md), and [docs/m4_plan.md](docs/m4_plan.md) for gates,
 reproducibility rules, and the approved experiment sequence.
+
+For the Hotpot-MT pilot, prepare filtered records with `--question-type
+bridge --levels medium hard --max-top-k 1 --max-observation-tokens 384
+--max-executed-search-calls 3`, then run the local evaluator with matching
+`--top-k 1 --max-top-k 1 --max-search-calls 3`.

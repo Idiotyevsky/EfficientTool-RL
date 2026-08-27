@@ -45,18 +45,44 @@ def summarize_episodes(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float
         return {
             "episodes": 0,
             "completion_rate": 0.0,
+            "avg_attempted_tool_calls": 0.0,
+            "avg_valid_tool_calls": 0.0,
+            "avg_executed_tool_calls": 0.0,
+            "avg_executed_search_calls": 0.0,
             "avg_search_calls": 0.0,
             "avg_turns": 0.0,
             "invalid_action_rate": 0.0,
         }
     completions = sum(item.get("termination_reason") == "final_answer" for item in episodes)
-    tool_calls = sum(int(item.get("tool_calls", 0)) for item in episodes)
+    attempted_tool_calls = sum(
+        int(item.get("attempted_tool_calls", item.get("tool_calls", 0))) for item in episodes
+    )
+    valid_tool_calls = sum(
+        int(item.get("valid_tool_calls", item.get("tool_calls", 0))) for item in episodes
+    )
+    executed_tool_calls = sum(
+        int(item.get("executed_tool_calls", item.get("tool_calls", 0))) for item in episodes
+    )
+    executed_search_calls = sum(
+        int(
+            item.get(
+                "executed_search_calls",
+                item.get("executed_tool_calls", item.get("tool_calls", 0)),
+            )
+        )
+        for item in episodes
+    )
     invalid_actions = sum(int(item.get("invalid_actions", 0)) for item in episodes)
     turns = sum(len(item.get("steps", [])) for item in episodes)
     return {
         "episodes": count,
         "completion_rate": completions / count,
-        "avg_search_calls": tool_calls / count,
+        "avg_attempted_tool_calls": attempted_tool_calls / count,
+        "avg_valid_tool_calls": valid_tool_calls / count,
+        "avg_executed_tool_calls": executed_tool_calls / count,
+        "avg_executed_search_calls": executed_search_calls / count,
+        # Backward-compatible name; it now has an explicit executed-search meaning.
+        "avg_search_calls": executed_search_calls / count,
         "avg_turns": turns / count,
         "invalid_action_rate": invalid_actions / max(turns, 1),
     }

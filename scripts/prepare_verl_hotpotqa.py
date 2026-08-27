@@ -22,6 +22,21 @@ def main() -> None:
     parser.add_argument("--split", required=True)
     parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--limit", type=int, required=True)
+    parser.add_argument(
+        "--question-type",
+        choices=("all", "bridge", "comparison"),
+        default="all",
+    )
+    parser.add_argument(
+        "--levels",
+        nargs="+",
+        choices=("easy", "medium", "hard"),
+        help="Optional difficulty filter applied before start-index/limit.",
+    )
+    parser.add_argument("--max-observation-tokens", type=int, default=512)
+    parser.add_argument("--max-top-k", type=int, default=3)
+    parser.add_argument("--max-executed-search-calls", type=int, default=3)
+    parser.add_argument("--data-source", default="hotpotqa_distractor")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if args.start_index < 0 or args.limit < 1:
@@ -29,12 +44,33 @@ def main() -> None:
     if args.output.exists() and not args.overwrite:
         raise FileExistsError(f"refusing to overwrite {args.output}")
 
+    if (
+        args.max_observation_tokens < 1
+        or args.max_top_k < 1
+        or args.max_executed_search_calls < 0
+    ):
+        raise ValueError(
+            "observation/top-k limits must be positive and search budget non-negative"
+        )
+
     examples = load_hotpotqa(args.input, split=args.split)
+    if args.question_type != "all":
+        examples = [example for example in examples if example.question_type == args.question_type]
+    if args.levels:
+        allowed_levels = set(args.levels)
+        examples = [example for example in examples if example.level in allowed_levels]
     selected = examples[args.start_index : args.start_index + args.limit]
     if len(selected) != args.limit:
         raise ValueError("requested range exceeds input dataset")
     records = [
-        to_verl_record(example, index=args.start_index + offset)
+        to_verl_record(
+            example,
+            index=args.start_index + offset,
+            max_observation_tokens=args.max_observation_tokens,
+            max_top_k=args.max_top_k,
+            max_executed_search_calls=args.max_executed_search_calls,
+            data_source=args.data_source,
+        )
         for offset, example in enumerate(selected)
     ]
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -49,6 +85,12 @@ def main() -> None:
         "split": args.split,
         "start_index": args.start_index,
         "rows": len(records),
+        "question_type": args.question_type,
+        "levels": args.levels,
+        "max_observation_tokens": args.max_observation_tokens,
+        "max_top_k": args.max_top_k,
+        "max_executed_search_calls": args.max_executed_search_calls,
+        "data_source": args.data_source,
         "output": str(args.output.resolve()),
         "bytes": args.output.stat().st_size,
         "sha256": digest,

@@ -12,27 +12,35 @@ from typing import Any
 from ..rewards import extract_final_answer, task_reward
 
 _TOOL_CALL_BLOCK = re.compile(r"<tool_call>(.*?)</tool_call>", flags=re.DOTALL)
-_TOOL_RESPONSE_BLOCK = re.compile(r"<tool_response>.*?</tool_response>", flags=re.DOTALL)
+_TOOL_CALL_OPENING = re.compile(r"<tool_call>")
+_TOOL_RESPONSE_BLOCK = re.compile(r"<tool_response>(.*?)</tool_response>", flags=re.DOTALL)
 _ROLE_LINE = re.compile(r"(?m)^(?:user|assistant|tool)\s*$")
 
 
-def classify_tool_calls(output: str, *, known_tool_names: frozenset[str] = frozenset({"search"})) -> dict[str, int]:
-    """Classify raw Hermes tool-call blocks without changing the rollout.
+def classify_tool_calls(
+    output: str, *, known_tool_names: frozenset[str] = frozenset({"search"})
+) -> dict[str, int]:
+    """Classify raw calls and successful responses without changing rollout.
 
-    The native verl parser logs malformed JSON and drops the call, so the
-    serialized response is the only stable post-hoc evidence.  ``malformed``
-    covers parser-level failures (invalid JSON or missing ``name``/``arguments``);
-    unknown names are tracked separately because their JSON is still valid.
+    A literal opening is an attempt; a valid payload is a valid call; and a
+    successful ``<tool_response>`` is an execution. ``malformed`` covers
+    parser-level failures, while unknown names remain separately visible.
     """
     if not isinstance(output, str):
         return {
+            "attempted_tool_call_count": 0,
             "tool_call_count": 0,
             "valid_tool_call_count": 0,
+            "valid_search_call_count": 0,
+            "executed_tool_call_count": 0,
+            "executed_search_call_count": 0,
             "malformed_tool_call_count": 0,
             "unknown_tool_call_count": 0,
         }
 
+    attempted = len(_TOOL_CALL_OPENING.findall(output))
     valid = 0
+    valid_search = 0
     malformed = 0
     unknown = 0
     for block in _TOOL_CALL_BLOCK.findall(output):
@@ -47,15 +55,57 @@ def classify_tool_calls(output: str, *, known_tool_names: frozenset[str] = froze
             malformed += 1
             continue
         valid += 1
+        valid_search += int(name == "search")
         if name not in known_tool_names:
             unknown += 1
 
+    executed = 0
+    executed_search = 0
+    for payload in _tool_response_payloads(output):
+        if payload.get("ok") is not True:
+            continue
+        executed += 1
+        executed_search += int(
+            payload.get("tool") == "search"
+            or ("tool" not in payload and "query" in payload and "results" in payload)
+        )
+
     return {
-        "tool_call_count": len(_TOOL_CALL_BLOCK.findall(output)),
+        "attempted_tool_call_count": attempted,
+        # Compatibility alias: this now explicitly means literal attempts.
+        "tool_call_count": attempted,
         "valid_tool_call_count": valid,
+        "valid_search_call_count": valid_search,
+        "executed_tool_call_count": executed,
+        "executed_search_call_count": executed_search,
         "malformed_tool_call_count": malformed,
         "unknown_tool_call_count": unknown,
     }
+
+
+def _tool_response_payloads(output: str) -> list[dict[str, Any]]:
+    """Decode native tool responses; malformed responses are not executions."""
+    payloads: list[dict[str, Any]] = []
+    for block in _TOOL_RESPONSE_BLOCK.findall(output):
+        try:
+            payload = json.loads(block)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if isinstance(payload, dict):
+            payloads.append(payload)
+    return payloads
+
+
+def _executed_search_payloads(output: str) -> list[dict[str, Any]]:
+    return [
+        payload
+        for payload in _tool_response_payloads(output)
+        if payload.get("ok") is True
+        and (
+            payload.get("tool") == "search"
+            or ("tool" not in payload and "query" in payload and "results" in payload)
+        )
+    ]
 
 
 def analyze_verl_rollouts(
@@ -74,8 +124,11 @@ def analyze_verl_rollouts(
     em_values: list[float] = []
     f1_values: list[float] = []
     valid_values: list[float] = []
-    tool_call_counts: list[int] = []
+    attempted_tool_call_counts: list[int] = []
     valid_tool_call_counts: list[int] = []
+    valid_search_call_counts: list[int] = []
+    executed_tool_call_counts: list[int] = []
+    executed_search_call_counts: list[int] = []
     malformed_tool_call_counts: list[int] = []
     unknown_tool_call_counts: list[int] = []
     groups: dict[str, list[tuple[Mapping[str, Any], float]]] = {}
@@ -91,8 +144,11 @@ def analyze_verl_rollouts(
         f1_values.append(float(reward["f1"]))
         valid_values.append(float(reward["valid_answer"]))
         tool_stats = classify_tool_calls(output)
-        tool_call_counts.append(tool_stats["tool_call_count"])
+        attempted_tool_call_counts.append(tool_stats["attempted_tool_call_count"])
         valid_tool_call_counts.append(tool_stats["valid_tool_call_count"])
+        valid_search_call_counts.append(tool_stats["valid_search_call_count"])
+        executed_tool_call_counts.append(tool_stats["executed_tool_call_count"])
+        executed_search_call_counts.append(tool_stats["executed_search_call_count"])
         malformed_tool_call_counts.append(tool_stats["malformed_tool_call_count"])
         unknown_tool_call_counts.append(tool_stats["unknown_tool_call_count"])
         group_value = row.get(group_key)
@@ -132,12 +188,18 @@ def analyze_verl_rollouts(
         "em_mean": statistics.mean(em_values),
         "f1_mean": statistics.mean(f1_values),
         "valid_answer_rate": statistics.mean(valid_values),
-        "literal_tool_call_count_mean": statistics.mean(tool_call_counts),
+        "attempted_tool_call_count_mean": statistics.mean(attempted_tool_call_counts),
+        # Compatibility alias; it is the number of literal call openings.
+        "literal_tool_call_count_mean": statistics.mean(attempted_tool_call_counts),
         "valid_tool_call_count_mean": statistics.mean(valid_tool_call_counts),
+        "valid_search_call_count_mean": statistics.mean(valid_search_call_counts),
+        "executed_tool_call_count_mean": statistics.mean(executed_tool_call_counts),
+        "executed_search_call_count_mean": statistics.mean(executed_search_call_counts),
         "malformed_tool_call_count_mean": statistics.mean(malformed_tool_call_counts),
         "malformed_tool_call_episode_rate": sum(value > 0 for value in malformed_tool_call_counts)
         / len(rows),
-        "malformed_tool_call_rate": sum(malformed_tool_call_counts) / max(sum(tool_call_counts), 1),
+        "malformed_tool_call_rate": sum(malformed_tool_call_counts)
+        / max(sum(attempted_tool_call_counts), 1),
         "unknown_tool_call_count_mean": statistics.mean(unknown_tool_call_counts),
         "answer_tag_rate": statistics.mean(
             bool(extract_final_answer(str(row.get("output", "")))) for row in rows
@@ -230,21 +292,27 @@ def _length_histogram(values: list[int]) -> dict[str, int]:
 
 
 def analyze_verl_behavior(
-    rows: Sequence[Mapping[str, Any]], *, tokenizer: Any | None = None
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    tokenizer: Any | None = None,
+    supporting_titles_by_question: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, Any]:
-    """Summarize native rollout behavior for M4/M5 decisions.
+    """Summarize native rollout behavior using actual tool executions.
 
-    Native output contains model generations interleaved with tool responses.
-    Search counts use valid JSON calls named search.  ``assistant_turns`` is
-    estimated as one initial generation plus one per tool response, while
-    ``verl_num_turns`` mirrors verl's ``assistant_turns + user_turns + 1``
-    convention under the one-tool-call-per-turn environment used here. Token
-    counts, when a tokenizer is supplied, exclude tool observations.
+    A literal ``<tool_call>`` is an attempt.  A successful ``<tool_response>``
+    is an execution.  This distinction is essential because the native parser
+    can reject malformed calls or terminate before executing a valid-looking
+    call.  Supporting titles are optional evaluation-only metadata; when
+    supplied, useful and wasted searches are computed without exposing them to
+    the model.
     """
     if not rows:
         raise ValueError("at least one rollout row is required")
 
     search_counts: list[int] = []
+    attempted_counts: list[int] = []
+    valid_counts: list[int] = []
+    executed_tool_counts: list[int] = []
     assistant_turn_counts: list[int] = []
     verl_turn_counts: list[int] = []
     generated_char_counts: list[int] = []
@@ -256,19 +324,48 @@ def analyze_verl_behavior(
     duplicate_query_episodes = 0
     duplicate_query_calls = 0
     unknown_tool_calls = 0
-    literal_tool_calls = 0
-    valid_tool_calls = 0
+    valid_search_calls = 0
     malformed_tool_calls = 0
+    useful_search_calls = 0
+    wasted_search_calls = 0
+    support_metadata_rows = 0
+    first_search_recalls: list[float] = []
+    second_search_count = 0
+    useful_second_searches = 0
+
+    def support_for_row(row: Mapping[str, Any]) -> set[str] | None:
+        if not supporting_titles_by_question:
+            return None
+        input_text = row.get("input")
+        if not isinstance(input_text, str):
+            return None
+        marker = "\nuser\n"
+        if marker in input_text:
+            question = input_text.split(marker, 1)[1].split("\nassistant", 1)[0].strip()
+            titles = supporting_titles_by_question.get(question)
+            if titles is not None:
+                return set(titles)
+        for question, titles in supporting_titles_by_question.items():
+            if question in input_text:
+                return set(titles)
+        return None
 
     for row in rows:
         output = row.get("output", "")
         reference = row.get("gts")
         if not isinstance(output, str) or not isinstance(reference, str):
             raise ValueError("each row requires string output and gts fields")
-        calls = _decoded_tool_calls(output)
-        search_calls = [call for call in calls if call["name"].strip() == "search"]
-        search_count = len(search_calls)
+        tool_stats = classify_tool_calls(output)
+        executed_search_payloads = _executed_search_payloads(output)
+        search_count = len(executed_search_payloads)
         search_counts.append(search_count)
+        attempted_counts.append(tool_stats["attempted_tool_call_count"])
+        valid_counts.append(tool_stats["valid_tool_call_count"])
+        executed_tool_counts.append(tool_stats["executed_tool_call_count"])
+        valid_search_calls += tool_stats["valid_search_call_count"]
+        malformed_tool_calls += tool_stats["malformed_tool_call_count"]
+        unknown_tool_calls += tool_stats["unknown_tool_call_count"]
+
         tool_response_count = output.count("<tool_response>")
         assistant_turns = tool_response_count + (1 if output.strip() else 0)
         assistant_turn_counts.append(assistant_turns)
@@ -286,22 +383,46 @@ def analyze_verl_behavior(
         valid_by_search.setdefault(search_count, []).append(float(reward["valid_answer"]))
 
         episode_queries: list[str] = []
-        for call in search_calls:
-            arguments = call.get("arguments")
-            query = arguments.get("query") if isinstance(arguments, dict) else None
+        support = support_for_row(row)
+        support_metadata_rows += int(support is not None)
+        discovered_support: set[str] = set()
+        row_useful = 0
+        first_search_recall = 0.0
+        for search_index, payload in enumerate(executed_search_payloads, start=1):
+            query = payload.get("query")
             if isinstance(query, str) and query.strip():
                 normalized = " ".join(query.casefold().split())
                 query_counts[normalized] += 1
                 episode_queries.append(normalized)
+            if support is None:
+                continue
+            result = payload.get("results", [])
+            titles = (
+                {
+                    item["title"]
+                    for item in result
+                    if isinstance(item, dict) and isinstance(item.get("title"), str)
+                }
+                if isinstance(result, list)
+                else set()
+            )
+            newly_found = (titles & support) - discovered_support
+            discovered_support.update(newly_found)
+            is_useful = bool(newly_found)
+            row_useful += int(is_useful)
+            if search_index == 1:
+                first_search_recall = len(discovered_support) / max(len(support), 1)
+            elif search_index == 2:
+                second_search_count += 1
+                useful_second_searches += int(is_useful)
+        if support is not None:
+            useful_search_calls += row_useful
+            wasted_search_calls += max(search_count - row_useful, 0)
+            first_search_recalls.append(first_search_recall)
+
         repeated = len(episode_queries) - len(set(episode_queries))
         duplicate_query_calls += max(repeated, 0)
         duplicate_query_episodes += int(repeated > 0)
-
-        tool_stats = classify_tool_calls(output)
-        literal_tool_calls += tool_stats["tool_call_count"]
-        valid_tool_calls += tool_stats["valid_tool_call_count"]
-        malformed_tool_calls += tool_stats["malformed_tool_call_count"]
-        unknown_tool_calls += tool_stats["unknown_tool_call_count"]
 
     def bucket_metrics(bucket: dict[int, list[float]]) -> dict[int, dict[str, float]]:
         return {
@@ -309,12 +430,28 @@ def analyze_verl_behavior(
             for count, values in sorted(bucket.items())
         }
 
+    support_available = bool(supporting_titles_by_question) and support_metadata_rows == len(rows)
     report: dict[str, Any] = {
         "episodes": len(rows),
         "avg_search_calls": statistics.mean(search_counts),
+        "avg_executed_search_calls": statistics.mean(search_counts),
         "search_count_distribution": dict(sorted(Counter(search_counts).items())),
-        # Keep the old keys as aliases for existing summaries, but make the
-        # definition explicit through the new names below.
+        "executed_search_count_distribution": dict(sorted(Counter(search_counts).items())),
+        "multi_search_rate": sum(count >= 2 for count in search_counts) / len(rows),
+        "three_plus_search_rate": sum(count >= 3 for count in search_counts) / len(rows),
+        "avg_attempted_tool_calls": statistics.mean(attempted_counts),
+        "avg_valid_tool_calls": statistics.mean(valid_counts),
+        "avg_executed_tool_calls": statistics.mean(executed_tool_counts),
+        "attempted_tool_call_count": sum(attempted_counts),
+        "valid_tool_call_count": sum(valid_counts),
+        "executed_tool_call_count": sum(executed_tool_counts),
+        "executed_search_call_count": sum(search_counts),
+        # Keep the old key as an explicit literal-attempt alias.
+        "literal_tool_call_count": sum(attempted_counts),
+        "valid_search_call_count": valid_search_calls,
+        "malformed_tool_call_count": malformed_tool_calls,
+        "unknown_tool_call_count": unknown_tool_calls,
+        "malformed_tool_call_rate": malformed_tool_calls / max(sum(attempted_counts), 1),
         "avg_turns": statistics.mean(assistant_turn_counts),
         "turn_distribution": dict(sorted(Counter(assistant_turn_counts).items())),
         "avg_assistant_turns": statistics.mean(assistant_turn_counts),
@@ -335,12 +472,32 @@ def analyze_verl_behavior(
             "f1": bucket_metrics(f1_by_search),
             "valid_answer": bucket_metrics(valid_by_search),
         },
-        "literal_tool_call_count": literal_tool_calls,
-        "valid_tool_call_count": valid_tool_calls,
-        "malformed_tool_call_count": malformed_tool_calls,
-        "unknown_tool_call_count": unknown_tool_calls,
-        "malformed_tool_call_rate": malformed_tool_calls / max(literal_tool_calls, 1),
+        "supporting_title_metadata_available": support_available,
+        "second_search_count": second_search_count,
+        "second_search_useful_rate": useful_second_searches / max(second_search_count, 1),
     }
+    if support_available:
+        report.update(
+            {
+                "useful_search_call_count": useful_search_calls,
+                "wasted_search_call_count": wasted_search_calls,
+                "avg_useful_search_calls": useful_search_calls / len(rows),
+                "avg_wasted_search_calls": wasted_search_calls / len(rows),
+                "tool_efficiency": useful_search_calls / max(sum(search_counts), 1),
+                "first_search_support_recall": sum(first_search_recalls) / len(rows),
+            }
+        )
+    else:
+        report.update(
+            {
+                "useful_search_call_count": None,
+                "wasted_search_call_count": None,
+                "avg_useful_search_calls": None,
+                "avg_wasted_search_calls": None,
+                "tool_efficiency": None,
+                "first_search_support_recall": None,
+            }
+        )
     if tokenizer is not None:
         report["generated_token_stats"] = _numeric_summary(generated_token_counts)
         report["generated_token_histogram"] = _length_histogram(generated_token_counts)

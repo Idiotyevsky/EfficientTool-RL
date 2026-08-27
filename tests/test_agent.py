@@ -28,6 +28,10 @@ def test_multi_turn_tool_episode_reaches_final_answer() -> None:
     assert result.termination_reason == "final_answer"
     assert result.final_answer == "M1_AGENT_OK"
     assert result.tool_calls == 1
+    assert result.attempted_tool_calls == 1
+    assert result.valid_tool_calls == 1
+    assert result.executed_tool_calls == 1
+    assert result.executed_search_calls == 1
     assert result.invalid_actions == 0
     assert result.steps[0].observation == {
         "ok": True,
@@ -43,6 +47,9 @@ def test_malformed_action_does_not_crash_episode() -> None:
 
     assert result.final_answer == "recovered"
     assert result.invalid_actions == 1
+    assert result.attempted_tool_calls == 1
+    assert result.valid_tool_calls == 0
+    assert result.executed_tool_calls == 0
     assert result.steps[0].observation["error"]["code"] == "malformed_json"
 
 
@@ -53,6 +60,9 @@ def test_unknown_tool_is_logged_and_episode_continues() -> None:
 
     assert result.final_answer == "fallback"
     assert result.invalid_actions == 1
+    assert result.attempted_tool_calls == 1
+    assert result.valid_tool_calls == 1
+    assert result.executed_tool_calls == 0
     assert result.steps[0].observation["error"]["code"] == "unknown_tool"
 
 

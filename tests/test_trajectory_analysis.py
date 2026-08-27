@@ -25,4 +25,10 @@ def test_analysis_detects_duplicate_search_and_evidence_recall():
     report, records = analyze_trajectories([trajectory], [example])
     assert report["duplicate_query_rate"] == 0.5
     assert report["avg_supporting_title_recall"] == 1.0
+    assert report["multi_search_rate"] == 1.0
+    assert report["useful_search_call_count"] == 1
+    assert report["wasted_search_call_count"] == 1
+    assert report["tool_efficiency"] == 0.5
+    assert records[0]["executed_search_calls"] == 2
+    assert records[0]["useful_search_calls"] == 1
     assert records[0]["failure_category"] == "repeated_search"

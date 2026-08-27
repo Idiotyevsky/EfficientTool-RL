@@ -194,6 +194,22 @@ duplicate as failed infrastructure evidence, and did not terminate any
 unrelated process. The original completed successfully; no metric from the
 failed duplicate was used.
 
+## 2026-08-27 — Executed-search accounting and Hotpot-MT scaffolding
+
+The analyzer previously treated valid-looking `<tool_call>` tags as executed
+searches. It now distinguishes literal attempts, parser-valid calls, and
+successful native `<tool_response>` executions; local trajectories record the
+same counters directly. When supporting titles are supplied only to offline
+analysis, each executed search is marked useful if it adds a previously unseen
+supporting title, otherwise wasted.
+
+The loader now retains HotpotQA `type` and `level`. Native and local tool
+configuration can enforce the same top-k cap, observation bound, and
+per-trajectory executed-search budget. A `hotpot_multi_turn.yaml` profile and
+filtered parquet-preparation options provide the next `bridge`-focused,
+`top_k=1` pilot environment. The 50-test suite passes; no cost reward has
+been added yet.
+
 ## 2026-08-27 — Canonical-loop formal retraining launched
 
 The corrected end-to-end M4 run was launched with the shared prompt/schema,

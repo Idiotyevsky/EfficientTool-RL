@@ -1,0 +1,28 @@
+# Hotpot-MT vanilla GRPO: bridge questions, one result per search, bounded budget.
+
+defaults:
+  - qwen1.7b_grpo
+  - _self_
+
+data:
+  train_files: ${oc.env:ETRL_DATA_DIR}/verl_hotpotqa_mt_train_2000.parquet
+  val_files: ${oc.env:ETRL_DATA_DIR}/verl_hotpotqa_mt_val_100.parquet
+  train_max_samples: 2000
+  val_max_samples: 100
+
+actor_rollout_ref:
+  rollout:
+    multi_turn:
+      max_assistant_turns: 5
+      max_user_turns: 5
+      max_parallel_calls: 1
+      tool_config_path: ${oc.env:ETRL_ROOT}/configs/tool_config/hotpot_multi_turn.yaml
+
+trainer:
+  total_training_steps: 62
+  test_freq: 10
+  save_freq: 62
+  experiment_name: qwen1.7b_grpo_hotpot_mt_2000_seed42
+  default_local_dir: ${oc.env:ETRL_RUN_DIR}/qwen1.7b_grpo_hotpot_mt_2000_seed42
+  rollout_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen1.7b_grpo_hotpot_mt_2000_seed42/rollouts
+  validation_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen1.7b_grpo_hotpot_mt_2000_seed42/validation
