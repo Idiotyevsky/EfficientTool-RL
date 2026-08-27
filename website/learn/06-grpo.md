@@ -72,7 +72,7 @@ $$
 
 ## 3. Formula → Config → Code
 
-这不是 PPT 上的另一套记号。每个概念都落在真实 smoke config 或 reward code 中。
+这些公式会逐一对应到实际配置，而不是停留在抽象符号层面。
 
 <div class="formula-config-grid">
   <article class="formula-config-card">
@@ -127,7 +127,7 @@ custom_reward_function:
 
 ### 所有 Reward 都是 0
 
-先检查 answer extraction、response clipping、native tool scaffolding 与 final tag。不要为了“有信号”直接加 shaping。
+先检查 answer extraction、response clipping、native tool scaffolding 与 final tag；过早加入 shaping 可能掩盖真正的问题。
 
 ### loss 在变，参数却没变
 

@@ -11,8 +11,8 @@ Learn Track 解释系统如何工作；Research Track 回答一个可检验的�
   <MetricPill label="model" value="Qwen3-8B" tone="agent" />
   <MetricPill label="trainer" value="verl + vLLM" />
   <MetricPill label="environment" value="Strict Hotpot-MT" tone="tool" />
-  <MetricPill label="formal M4" value="RUNNING" />
-  <MetricPill label="M5" value="TBD" tone="negative" />
+  <MetricPill label="vanilla GRPO" value="IN PROGRESS" />
+  <MetricPill label="cost-aware RL" value="PLANNED" tone="negative" />
 </div>
 
 ## 当前研究链
@@ -22,11 +22,11 @@ Learn Track 解释系统如何工作；Research Track 回答一个可检验的�
   { label: 'Qwen3-8B', detail: 'non-trivial tool behavior', tone: 'agent' },
   { label: 'Vanilla GRPO', detail: 'task-only reward' },
   { label: 'Behavior Audit', detail: 'executed / useful / wasted' },
-  { label: 'Cost-aware RL', detail: 'only after gate' },
+  { label: 'Cost-aware RL', detail: 'next stage' },
   { label: 'Natural Bridge-Hard', detail: 'secondary evaluation' }
 ]" />
 
-Formal strict vanilla GRPO 仍在运行。最终 M4 held-out comparison 与所有 M5 cost-aware improvement 均未完成，网站不会把 pilot/sanity evidence 写成正式结果。
+Qwen3-8B 的 vanilla GRPO 对照实验正在进行。完成基线评估后，再根据任务质量与工具行为决定 cost-aware objective；pilot 与 sanity check 会明确标注为阶段性证据。
 
 ## 两个评估集回答不同问题
 
@@ -42,11 +42,11 @@ Formal strict vanilla GRPO 仍在运行。最终 M4 held-out comparison 与所�
 
 | Evidence | Stored result | 合理解释 |
 | --- | --- | --- |
-| Held-out ReAct baseline · 60 examples | EM 0.400 · F1 0.506 · avg search 1.000 | 已接受 M2 baseline |
+| Held-out ReAct baseline · 60 examples | EM 0.400 · F1 0.506 · avg search 1.000 | Reference baseline |
 | Strict Qwen3-8B pilot · 200 examples | EM 0.215 · F1 0.3344 · P(search≥2) 31.5% | RL 前已存在 multi-search behavior |
-| Strict 8B four-update sanity | EM/F1 0.240/0.3635 → 0.320/0.4324 | technical signal，不是 formal claim |
-| Formal strict vanilla GRPO | TBD | active run，gate open |
-| Cost-aware sweep | TBD | 尚未获准启动 |
+| Strict 8B four-update sanity | EM/F1 0.240/0.3635 → 0.320/0.4324 | Small-scale training check |
+| Qwen3-8B vanilla GRPO | In progress | Full baseline comparison |
+| Cost-aware sweep | Planned | Starts after vanilla baseline evaluation |
 
 ## 审计入口
 
@@ -56,4 +56,4 @@ Formal strict vanilla GRPO 仍在运行。最终 M4 held-out comparison 与所�
 - [Raw PROGRESS.md](https://github.com/Idiotyevsky/EfficientTool-RL/blob/main/PROGRESS.md)
 - [Raw debug log](https://github.com/Idiotyevsky/EfficientTool-RL/blob/main/docs/debug_log.md)
 
-研究记录保留失败 run 与 evaluator alignment 过程；一个“代码能跑”的 milestone 不会自动被接受。
+研究记录保留失败运行与 evaluator alignment 过程，方便追踪结果如何得到。

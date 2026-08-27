@@ -32,7 +32,7 @@ Search observation:
 [{"title":"Ada Lovelace","passage":"... Analytical Engine.","score":1.924...}]
 ```
 
-第一段是明确标注的 teaching input，不是假装由模型生成的实验数据；第二、三段调用的是生产 parser 与 BM25 tool。
+第一段是明确标注的教学输入；第二、三段使用的是项目实际的 parser 与 BM25 搜索实现。
 
 ## 三个对象，三种责任
 
@@ -63,7 +63,7 @@ Search observation:
 
 ## 最小真实代码路径
 
-下面不是另写的教程实现，而是页面直接导入仓库示例：
+下面就是刚才运行的示例源码，页面直接引用仓库文件，方便边运行边对照：
 
 <<< ../../examples/01_tool_calling.py{python}
 
@@ -88,7 +88,7 @@ Agent RL 需要知道模型到底做错了什么。裸 JSON、未闭合 XML、�
 
 ### 模型输出了 JSON，却没有 `<tool_call>`
 
-在 strict protocol 中这不是 action。先检查 tool schema 与 system prompt 是否进入 chat template，不要添加第二个“宽松 parser”掩盖格式问题。
+在 strict protocol 中这不是 action。若出现裸 JSON，优先检查 tool schema 和 chat template；自动修复格式反而会掩盖错误来源。
 
 ### 一次生成了两个 Tool Call
 

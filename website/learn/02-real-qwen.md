@@ -101,11 +101,11 @@ policy 使用 `local_files_only=True`。传入本地 Hugging Face checkpoint 目
 
 ### 输出裸 JSON 或 malformed tag
 
-保留 raw output。检查 Qwen chat template 是否支持并接收 `tools`，不要为教程增加宽松 parser。
+保留 raw output。检查 Qwen chat template 是否支持并接收 `tools`；自动放宽 parser 会掩盖格式错误的来源。
 
 ### 显存不足
 
-先减少 `--max-new-tokens` 或使用更小 checkpoint。这是 inference lesson；不要改 formal 8B 训练配置。
+先减少 `--max-new-tokens` 或使用更小 checkpoint。这一节只运行推理，可以先用更短的生成长度或更小 checkpoint。
 
 ## 动手改一下
 

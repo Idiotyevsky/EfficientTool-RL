@@ -9,8 +9,8 @@ description: 区分 attempted、valid、executed、useful 与 wasted 工具调�
 
 <div class="lesson-meta">
   <MetricPill label="runtime" value="CPU" />
-  <MetricPill label="analyzer" value="production code" tone="positive" />
-  <MetricPill label="cost-aware result" value="TBD" tone="negative" />
+  <MetricPill label="analyzer" value="actual implementation" tone="positive" />
+  <MetricPill label="focus" value="measurement" tone="positive" />
 </div>
 
 ## 五种 count 不是同义词
@@ -29,7 +29,7 @@ description: 区分 attempted、valid、executed、useful 与 wasted 工具调�
 PYTHONPATH=src python examples/08_efficiency_metrics.py
 ```
 
-已验证预期摘要：
+示例摘要：
 
 ```json
 {
@@ -71,7 +71,7 @@ $$
 - **Hotpot-MT Strict**：controlled multi-turn stress test，包含信息可用性筛选、top-k 1 与三次 executed-search budget。
 - **Natural Bridge-Hard**：不使用 strict answer-absence filter 的次级评估。
 
-Cost-aware objective 必须等待 formal vanilla gate；当前结果保持 **TBD**，不在教程中预演成功结论。
+本章先解决“如何测量工具效率”。Cost-aware 训练仍在后续实验阶段，结果尚未发布。
 
 ## 动手改一下
 
@@ -84,7 +84,7 @@ Cost-aware objective 必须等待 formal vanilla gate；当前结果保持 **TBD
 - 为什么 executed 才接近真实环境成本？
 - useful 为什么只能离线计算？
 - 必要第二跳与重复 query 应该受到相同惩罚吗？
-- 为什么 M5 结果仍必须写 TBD？
+- 为什么在没有完整对照实验前，不能仅凭更少的搜索次数声称 Agent 更高效？
 
 </LearningCheckpoint>
 

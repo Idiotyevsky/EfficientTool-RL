@@ -9,18 +9,18 @@ description: Observation 如何成为下一状态，以及为什么“支持多�
 
 <div class="lesson-meta">
   <MetricPill label="runtime" value="CPU" />
-  <MetricPill label="policy" value="scripted teaching fixture" />
-  <MetricPill label="loop" value="real AgentRunner" tone="agent" />
+  <MetricPill label="policy" value="teaching example" />
+  <MetricPill label="loop" value="项目 AgentRunner" tone="agent" />
   <MetricPill label="prerequisite" value="Chapter 02" />
 </div>
 
 ## 先把 trajectory 摊开
 
-下面的交互 UI 使用与 `AgentRunner` 一致的 trajectory 语义。默认成功轨迹来自 tiny-corpus scripted fixture，明确不是模型预测。
+下面的交互 UI 使用与 `AgentRunner` 一致的 trajectory 语义。默认成功轨迹来自 tiny-corpus 教学示例，页面会明确标注它不是模型预测。
 
 <TrajectoryExplorer />
 
-也可以直接运行生产 loop：
+也可以直接运行项目 Agent loop：
 
 ```bash
 PYTHONPATH=src python examples/02_multiturn_agent.py
@@ -104,9 +104,9 @@ $$
   { label: 'Behavior', detail: 'policy 实际选择继续搜索', tone: 'agent' }
 ]" />
 
-增加 `max_turns` 只增加 capability。环境是否限制一次检索的信息量决定 necessity；最终 trajectory 才说明 behavior。不要用 reward 强迫固定搜索次数来冒充自然多轮。
+增加 `max_turns` 只增加 capability。环境是否限制一次检索的信息量决定 necessity；最终 trajectory 才说明 behavior。直接奖励固定搜索次数会让模型学习“完成次数要求”，而不是判断何时还缺证据，因此这里不采用这种设计。
 
-<div class="research-note"><strong>From the lab · pilot, not causal proof</strong><br>受控 Strict Hotpot-MT 的 Qwen3-8B pilot 记录到 P(search ≥ 2) = 31.5%。恰好两次搜索的 episode 与更高 EM 相关；正式 GRPO gate 仍以 Research Track 的 held-out evidence 为准。</div>
+<div class="research-note"><strong>From the lab · pilot, not causal proof</strong><br>受控 Strict Hotpot-MT 的 Qwen3-8B pilot 记录到 P(search ≥ 2) = 31.5%。恰好两次搜索的 episode 与更高 EM 相关；训练是否提升能力，需要在独立验证集上另行比较。</div>
 
 ## 代码里对应哪里？
 

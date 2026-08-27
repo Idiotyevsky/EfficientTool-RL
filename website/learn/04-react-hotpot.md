@@ -28,7 +28,7 @@ PYTHONPATH=src python examples/03_react_hotpot.py \
   --top-k 3
 ```
 
-成功输出包含 question/reference/final answer、EM/F1、turns、attempted/valid/executed calls 与 termination reason。具体分数依 checkpoint 和 row 而变，不应伪造为固定 golden value。
+成功输出包含 question/reference/final answer、EM/F1、turns、attempted/valid/executed calls 与 termination reason。不同 checkpoint 和样本会得到不同结果，请以实际运行输出为准。
 
 ## Model 看见什么，Evaluator 又看见什么？
 
@@ -37,7 +37,7 @@ PYTHONPATH=src python examples/03_react_hotpot.py \
   <article><span class="section-kicker">OFFLINE EVALUATION</span><h3>Reference + stored trajectory</h3><p>EM/F1 与 useful-search 标签只在 episode 后计算。</p></article>
 </div>
 
-这种边界避免 answer leakage，也让检索环境保持 deterministic。生产 evaluator `scripts/evaluate_react.py` 还会保存 trajectory、failures、metrics 与数据 fingerprint。
+这种边界避免 answer leakage，也让检索环境保持 deterministic。批量评测脚本 `scripts/evaluate_react.py` 还会保存 trajectory、failures、metrics 与数据 fingerprint。
 
 ## top-k 改变的不是“小参数”
 
@@ -45,13 +45,13 @@ PYTHONPATH=src python examples/03_react_hotpot.py \
 
 ## 常见失败
 
-- **loader 拒绝文件**：使用仓库 preparation script，不要手写另一套 context schema。
+- **loader 拒绝文件**：建议使用仓库的数据准备脚本，以避免字段格式与 evaluator 不一致。
 - **每题都直接回答**：看 raw action；可能是 pretraining knowledge、prompt 或 strict tag 行为。
 - **EM=0 但看似相近**：检查 `<answer>` 中是否只包含最小答案 span。
 
 ## 动手改一下
 
-在相同 5 条 row 上比较 `top-k=1` 与 `top-k=3`，记录 executed searches 与 EM/F1，但不要把两组 profile 合并平均。
+在相同 5 条 row 上比较 `top-k=1` 与 `top-k=3`，分别记录两组结果，避免把不同 information structure 混成一个平均值。
 
 <LearningCheckpoint>
 

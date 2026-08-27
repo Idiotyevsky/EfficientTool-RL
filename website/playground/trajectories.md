@@ -5,7 +5,7 @@ description: 用真实 Agent 数据结构理解多轮工具行为。
 
 # Trajectory Explorer
 
-Aggregate metrics 会告诉你“平均调用了几次工具”，Trajectory 会告诉你“为什么”。这里的五条轨迹使用生产 `AgentRunner`、parser 和行为指标的语义，但均明确标注为 **Teaching / scripted example**，不是模型预测或实验结果。
+汇总指标会告诉你“平均调用了几次工具”，Trajectory 会告诉你“为什么”。这里的五条轨迹使用项目 `AgentRunner`、parser 和行为指标的语义，但均明确标注为 **Teaching example**，不是模型预测或实验结果。
 
 <TrajectoryExplorer />
 

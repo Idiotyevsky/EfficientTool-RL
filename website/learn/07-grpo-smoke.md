@@ -5,7 +5,7 @@ description: 通过真实 verl/vLLM pipeline 完成一次 Qwen3-1.7B 参数更�
 
 # 07 · 真正更新一次 Agent
 
-这一课不实现第二个 trainer。`train_grpo_smoke.py` 只是安全 wrapper：解析路径、选择现有 Hydra config，然后调用项目真实的 verl 入口完成一次 update。
+这一节直接调用项目现有的 verl 训练入口，因此你运行的是同一套 GRPO pipeline，而不是教学版模拟器。
 
 <div class="lesson-meta">
   <MetricPill label="runtime" value="1 GPU" tone="tool" />
@@ -17,7 +17,7 @@ description: 通过真实 verl/vLLM pipeline 完成一次 Qwen3-1.7B 参数更�
 ## 先看这一 update 穿过什么
 
 <ConceptFlow :items="[
-  { label: '8 Prompts', detail: 'bounded train slice' },
+  { label: '8 Prompts', detail: 'small train slice' },
   { label: '32 Trajectories', detail: 'n = 4 per prompt', tone: 'agent' },
   { label: 'Tool Loop', detail: 'real multi-turn rollout', tone: 'tool' },
   { label: 'Rewards', detail: 'task-only EM / F1' },
@@ -48,7 +48,7 @@ Resolved command:
 Dry run: Ray was not started and no output directory was created.
 ```
 
-wrapper 会拒绝不存在的 model/data/config path，也会拒绝非空 run directory。这些 guard 防止教学 smoke 覆盖研究产物。
+wrapper 会拒绝不存在的 model/data/config path，也会拒绝非空 run directory；脚本要求使用独立输出目录，避免覆盖之前的训练结果。
 
 ## 2. 资源确认后再启动
 
@@ -79,7 +79,7 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
 5. actor 与 optimizer checkpoint；
 6. update 后 validation。
 
-这个仓库已经验证过一条 Qwen3-1.7B teaching smoke：
+一个参考运行得到：
 
 <div class="lesson-meta">
   <MetricPill label="mean reward" value="0.15625" tone="agent" />
@@ -89,7 +89,7 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
   <MetricPill label="validation EM/F1" value="0 / 0" tone="negative" />
 </div>
 
-这些值来自已保存、已验证的 Learn Track smoke。它们证明 rollout → reward → gradient → optimizer update 的 plumbing 成立。
+这些数值来自一个参考运行；它展示了 rollout、reward、gradient 与 optimizer update 如何串成训练链路。
 
 ## Optimization signal ≠ benchmark improvement
 
@@ -104,7 +104,7 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
   <article>
     <span class="section-kicker">NOT PROVEN</span>
     <h3>模型性能得到提升</h3>
-    <p>一次 teaching update 不足以支持 benchmark improvement；这需要 held-out formal experiment。</p>
+    <p>一次单步训练不足以支持 benchmark improvement；性能提升需要在独立验证集上的完整实验中比较。</p>
   </article>
 </div>
 
@@ -115,7 +115,7 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
 <div class="code-map">
   <div><span>Safe wrapper</span><code>scripts/train_grpo_smoke.py</code></div>
   <div><span>Teaching config</span><code>configs/learn_grpo_smoke.yaml</code></div>
-  <div><span>Real trainer entry</span><code>scripts/run_ppo_m3.py → verl</code></div>
+  <div><span>GRPO training entry</span><code>scripts/run_ppo_m3.py → verl</code></div>
 </div>
 
 ## 常见失败
@@ -126,11 +126,11 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
 
 ### vLLM / Ray 在 update 前失败
 
-保存完整错误，确认 GPU ownership 与 memory。换一个 fresh run directory；不要修改 active formal 8B config 来迁就教学 smoke。
+保存完整错误，确认 GPU ownership 与 memory，并使用新的输出目录。
 
 ### run 完成但 grad 为 0
 
-依次检查 final-answer formatting、reward extraction、组内 reward variance 与 clipping。全零 reward 的 run 是 failed signal evidence，不是成功 smoke。
+依次检查 final-answer formatting、reward extraction、组内 reward variance 与 clipping。如果所有 reward 都为 0，训练链路虽然可能完成，但当前 batch 没有提供有效的相对学习信号。
 
 ## 动手检查
 
@@ -142,9 +142,9 @@ PYTHONPATH=src python scripts/train_grpo_smoke.py \
 <LearningCheckpoint>
 
 - 哪些证据证明 optimizer 真正更新了 actor？
-- 为什么 non-zero gradient 仍不支持 performance claim？
+- 为什么 non-zero gradient 仍不足以证明性能提升？
 - wrapper 为什么拒绝非空 output directory？
-- 这条 teaching smoke 与 formal Qwen3-8B run 的角色有何不同？
+- 为什么一次单步训练只能验证训练链路，而不能证明模型性能提升？
 
 </LearningCheckpoint>
 

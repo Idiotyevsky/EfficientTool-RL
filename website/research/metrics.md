@@ -5,7 +5,7 @@ description: Task quality 与 Tool behavior 的统一统计口径。
 
 # 指标定义
 
-Efficiency claim 必须同时有任务质量与行为成本；单独报告“平均 search 下降”无法排除 under-search。
+判断 Agent 是否更高效时，需要同时比较任务质量和工具成本；仅看平均搜索次数会把 under-search 误判为优化。
 
 ## Answer quality
 

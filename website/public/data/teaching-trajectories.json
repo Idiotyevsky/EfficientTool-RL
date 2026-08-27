@@ -1,10 +1,10 @@
 {
-  "provenance": "Scripted teaching fixtures derived from the tiny corpus and failure contracts in examples/02_multiturn_agent.py, examples/01_tool_calling.py, and the production AgentRunner. They are not model predictions or benchmark evidence.",
+  "provenance": "Teaching examples derived from the tiny corpus and failure contracts in examples/02_multiturn_agent.py, examples/01_tool_calling.py, and the project AgentRunner. They are not model predictions or benchmark evidence.",
   "trajectories": [
     {
       "id": "good-two-hop",
       "label": "Good multi-turn",
-      "kind": "Teaching / scripted example",
+      "kind": "Teaching example",
       "description": "两次搜索分别补齐人物与机器证据，随后正确作答。",
       "question": "What machine did the person who wrote notes on Babbage's work write about?",
       "finalAnswer": "Analytical Engine",
@@ -22,7 +22,7 @@
     {
       "id": "under-search",
       "label": "Under-search",
-      "kind": "Teaching / scripted example",
+      "kind": "Teaching example",
       "description": "没有执行搜索便猜测答案；成本低，但任务失败。",
       "question": "What machine did Ada Lovelace write notes about?",
       "finalAnswer": "Difference Engine",
@@ -36,7 +36,7 @@
     {
       "id": "repeated-query",
       "label": "Repeated query",
-      "kind": "Teaching / scripted example",
+      "kind": "Teaching example",
       "description": "第二次执行了合法搜索，却没有带来新 supporting title。",
       "question": "What machine did Ada Lovelace write notes about?",
       "finalAnswer": "Analytical Engine",
@@ -54,7 +54,7 @@
     {
       "id": "invalid-tool-call",
       "label": "Invalid Tool Call",
-      "kind": "Teaching / scripted example",
+      "kind": "Teaching example",
       "description": "模型尝试调用工具，但 JSON 未闭合，parser 将其记录为 InvalidAction。",
       "question": "Find evidence about Ada Lovelace.",
       "finalAnswer": null,
@@ -69,7 +69,7 @@
     {
       "id": "wasted-third-search",
       "label": "Wasted third call",
-      "kind": "Teaching / scripted example",
+      "kind": "Teaching example",
       "description": "前两次搜索已经补齐证据，第三次搜索没有信息增益。",
       "question": "What machine did Ada Lovelace write notes about?",
       "finalAnswer": "Analytical Engine",

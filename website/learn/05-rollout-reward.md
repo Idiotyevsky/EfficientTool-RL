@@ -43,7 +43,7 @@ $$
 R_{task}=0.5\,EM+0.5\,F1
 $$
 
-reward adapter 要求 exactly one terminal `<answer>...</answer>`。它会去掉 native tool-response/thinking scaffolding，再对答案 span 评分。ordinary prose 中“看起来答对了”仍可能因为协议无效而得 0。
+reward adapter 要求 exactly one terminal `<answer>...</answer>`。它会去掉 native tool-response/thinking scaffolding，再对答案 span 评分。普通文本回答中“看起来答对了”仍可能因为协议无效而得 0。
 
 <div class="code-map">
   <div><span>One transition</span><code>EpisodeStep</code></div>

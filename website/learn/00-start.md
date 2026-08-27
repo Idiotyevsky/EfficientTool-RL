@@ -53,10 +53,10 @@ Next step: run examples/01_tool_calling.py.
 <div class="code-map">
   <div><span>Action protocol</span><code>src/efficienttool_rl/protocol.py</code></div>
   <div><span>Agent loop</span><code>src/efficienttool_rl/agent.py</code></div>
-  <div><span>Real trainer entry</span><code>scripts/run_ppo_m3.py</code></div>
+  <div><span>GRPO training entry</span><code>scripts/run_ppo_m3.py</code></div>
 </div>
 
-示例只是薄入口：它们调用 `src/efficienttool_rl/`，不会维护第二套 Agent framework。
+课程示例直接复用核心实现，因此你在示例里看到的协议、Agent loop 和训练代码保持一致。
 
 ## 常见问题
 
@@ -76,7 +76,7 @@ Next step: run examples/01_tool_calling.py.
 
 - 哪个文件把模型文本解析为 action？
 - 哪个对象保存一整个 episode？
-- 为什么 `verl not installed` 不代表 Chapter 01 不能运行？
+- 为什么 `verl not installed` 不代表 CPU 课程不能运行？
 
 </LearningCheckpoint>
 
