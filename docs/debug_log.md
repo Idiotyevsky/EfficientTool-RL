@@ -193,3 +193,13 @@ visible in the log.
 duplicate as failed infrastructure evidence, and did not terminate any
 unrelated process. The original completed successfully; no metric from the
 failed duplicate was used.
+
+## 2026-08-27 — Canonical-loop formal retraining launched
+
+The corrected end-to-end M4 run was launched with the shared prompt/schema,
+the project-local `CanonicalToolAgentLoop`, Qwen3-1.7B, 2,000 training rows,
+group size four, seed 42, and 62 updates on A6000-6 GPUs 0–1. At the first
+progress check it advanced through 7/62 updates, produced sequential rollout
+files, and showed no OOM or traceback. The run remains in progress; no final
+M4 claim is made until its checkpoint is evaluated under the same canonical
+protocol.

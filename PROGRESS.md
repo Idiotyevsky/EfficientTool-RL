@@ -5,7 +5,7 @@ M4 — Main Vanilla GRPO
 # Status
 
 IN PROGRESS — canonical evaluator reconciliation passed; canonical-loop
-retraining is required before the final M4 claim is accepted.
+retraining is active before the final M4 claim is accepted.
 
 # Completed
 
@@ -42,7 +42,7 @@ retraining is required before the final M4 claim is accepted.
 
 # In Progress
 
-- Re-run the formal 2k vanilla GRPO experiment with the canonical loop so
+- The formal 2k vanilla GRPO experiment is running with the canonical loop so
   training-time and evaluation-time trajectory semantics are identical.
 
 # Blockers
@@ -53,7 +53,7 @@ retraining is required before the final M4 claim is accepted.
 
 # Latest Evidence
 
-- Deterministic/unit tests: 45/45 passed (one upstream warning).
+- Deterministic/unit tests: 47/47 passed (one upstream warning).
 - Held-out 60: EM 0.400, F1 0.506, completion 100%.
 - Average search calls: 1.000; average turns: 2.017.
 - Average supporting-title recall: 0.775.
@@ -97,6 +97,10 @@ retraining is required before the final M4 claim is accepted.
   0.340/0.4220; existing final checkpoint 0.380/0.4775. These close results
   validate the cross-evaluator protocol alignment, but the checkpoint still
   needs canonical-loop retraining for a final M4 claim.
+- Canonical-loop formal retraining launched on A6000-6 GPUs 0–1 with the
+  approved 2,000-example, 62-update configuration. At the latest checkpoint
+  it had reached 7/62 updates with rollout files through `6.jsonl` and no
+  OOM or traceback; final metrics are intentionally pending.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency, not yet justification for launching cost shaping.
@@ -118,8 +122,7 @@ retraining is required before the final M4 claim is accepted.
 
 # Next Actions
 
-1. Launch the canonical-loop 2k vanilla GRPO run with the approved seed and
-   hyperparameters.
+1. Let the canonical-loop 2k vanilla GRPO run finish and preserve its logs.
 2. Evaluate its held-out checkpoint against the canonical base protocol and
    inspect at least 20 successes and 20 failures.
 3. Only after the M4 gate is accepted, decide whether M5 should penalize
