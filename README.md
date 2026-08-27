@@ -1,80 +1,139 @@
-# EfficientTool-RL
+# MiniAgentRL
 
-**Train LLM agents to search less, search better, and answer correctly with GRPO.**
+**Learn Agentic Reinforcement Learning by building a real multi-turn tool agent with GRPO.**
 
-EfficientTool-RL is a reproducible research project for cost-aware,
-multi-turn tool-agent reinforcement learning. The MVP uses a Qwen3 model, a
-deterministic local BM25 search tool, HotpotQA distractor passages, and
-verl-style grouped rollouts. Vanilla task-only GRPO is validated before any
-search-cost shaping is introduced.
+MiniAgentRL is a minimal but complete learning project for moving from ordinary LLM inference to Agentic RL. It follows the full loop:
 
-## Status
+**Tool Calling → Multi-turn Interaction → Rollout → Reward → GRPO → Efficient Tool Use**
 
-M0–M3 are accepted: environment, agent protocol, ReAct baseline, and the
-GRPO learning-signal sanity gate. The canonical 2,000-example vanilla GRPO
-run is complete and archived. Strict Hotpot-MT pilots show genuine
-multi-search behavior with Qwen3-8B: 31.5% of episodes execute at least two
-searches, and exactly-two-search episodes reach 52.6% EM versus 9.5% after one
-search. The formal strict 2,000-example vanilla GRPO run is now in progress;
-final claims remain
-`TBD`.
+The public-facing brand is MiniAgentRL. The repository and Python package still use EfficientTool-RL and efficienttool_rl for compatibility; no package-wide rename is required.
+
+## Why this project?
+
+Many agent tutorials stop at “LLM + tool + ReAct prompt”. This project shows how to train the agent: a Qwen policy interacts with a deterministic search environment, produces trajectories, receives task reward, and is optimized with grouped GRPO rollouts.
 
 ## Architecture
 
-```text
-HotpotQA passages → local BM25 search → multi-turn Agent loop
-                                      ↓
-                         grouped rollouts → GRPO reward/update
-                                      ↓
-                 EM/F1 + tool calls + tokens + trajectory analysis
-```
+~~~mermaid
+flowchart LR
+  Q[Question] --> A[Qwen Agent]
+  A --> C[Tool Call]
+  C --> S[Deterministic BM25 Search]
+  S --> O[Observation]
+  O --> A
+  A --> F[Final Answer]
+  F --> R[Task Reward]
+  R --> G[GRPO]
+  G --> P[Updated Policy]
+~~~
 
-The repository keeps tools, environment data, rewards, training, evaluation,
-and analysis separate. Gold answers are available only to offline reward and
-evaluation code, never to the search tool. The active formal experiment uses a
-bridge-focused Hotpot-MT profile with one result per search and an explicit
-three-search execution budget. Its strict candidate filter makes the first
-question-level hop incomplete without exposing support metadata to the agent.
-The Qwen3-8B pilot already produces useful second-hop behavior, so this run
-first measures vanilla GRPO under the fixed information structure; no search
-penalty is used yet.
+## What you will learn
 
-## Quick start
+- Tool schemas, tagged actions, parsing, and structured observations.
+- Multi-turn agent state, actions, trajectories, termination, and ReAct.
+- Rollouts, sparse task reward, grouped rewards, and GRPO’s relative signal.
+- verl/vLLM integration and the cost of agentic rollouts.
+- How to measure necessary versus wasted tool use.
 
-```bash
+## Learning path
+
+1. [Tool calling example](examples/01_tool_calling.py)
+2. [Multi-turn loop example](examples/02_multiturn_agent.py)
+3. [ReAct on HotpotQA](examples/03_react_hotpot.py)
+4. [GRPO concepts](examples/04_grpo_concepts.py)
+5. Read the [tutorials](tutorials/) and then the [research track](research/).
+
+## Quick Start — Learn Track
+
+The first two examples use a tiny deterministic corpus and do not download a model.
+
+~~~bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-pytest -q
-```
+pip install -e ".[test]"
 
-Prepare normalized data with `scripts/prepare_hotpotqa.py`, then materialize
-verl records with `scripts/prepare_verl_hotpotqa.py`. Run the inference-only
-baseline with:
+PYTHONPATH=src python examples/01_tool_calling.py
+PYTHONPATH=src python examples/02_multiturn_agent.py
+PYTHONPATH=src python examples/04_grpo_concepts.py
+python -m pytest -q
+~~~
 
-```bash
-python scripts/evaluate_react.py \
-  --data data/hotpotqa_distractor_validation.jsonl \
+For a real local ReAct episode, install the model extras and provide a local normalized HotpotQA JSONL file and a local Qwen checkpoint:
+
+~~~bash
+pip install -e ".[test,data,hf]"
+PYTHONPATH=src python examples/03_react_hotpot.py \
+  --data /path/to/hotpotqa_distractor_validation.jsonl \
   --model /path/to/Qwen3-1.7B \
-  --output-dir outputs/react_hotpotqa
-```
+  --limit 1
+~~~
 
-## GRPO experiment
+This command is intentionally bounded. The example reports the question, answer metrics, turns, and attempted/valid/executed searches. Use scripts/evaluate_react.py for a stored baseline with trajectories and metrics.
 
-Set `ETRL_ROOT`, `ETRL_MODEL`, `ETRL_DATA_DIR`, `ETRL_RUN_DIR`, and
-`VERL_CONFIG_PATH` as shown in `.env.example`, install a compatible verl/vLLM
-stack, then run:
+## Research Track
 
-```bash
-python scripts/run_ppo_m3.py --config-name qwen1.7b_grpo
-```
+The research path preserves the real implementation:
 
-Every run must use a unique output directory and retain its resolved config,
-logs, rollouts, and metrics. See [AGENTS.md](AGENTS.md),
-[PROGRESS.md](PROGRESS.md), and [docs/m4_plan.md](docs/m4_plan.md) for gates,
-reproducibility rules, and the approved experiment sequence.
+**Strict Hotpot-MT → Qwen3-8B → vanilla multi-turn GRPO → tool-use analysis → cost-aware RL → Natural Bridge-Hard evaluation**
 
-For the Hotpot-MT pilot, prepare filtered records with `--question-type
-bridge --levels medium hard --max-top-k 1 --max-observation-tokens 384
---max-executed-search-calls 3`, then run the local evaluator with matching
-`--top-k 1 --max-top-k 1 --max-search-calls 3`.
+It uses verl, vLLM, FSDP, native multi-turn rollout, deterministic BM25 retrieval, and explicit executed-search accounting. Start with the [research index](research/README.md), [experiment history](PROGRESS.md), and [environment report](docs/environment_report.md). Full training needs a compatible CUDA/verl installation and should only be launched after checking resources and selecting a unique output directory.
+
+## Evidence so far (not final results)
+
+These rows come from different evaluation purposes and must not be read as one leaderboard:
+
+| Evaluation | EM | F1 | Executed-search evidence |
+| --- | ---: | ---: | --- |
+| Held-out ReAct baseline, 60 examples | 0.400 | 0.506 | 1.000 average |
+| Strict Qwen3-8B pilot, 200 examples | 0.215 | 0.3344 | 1.345 average; P(search ≥ 2) = 31.5% |
+| Formal strict vanilla GRPO | TBD | TBD | Active run; final gate open |
+
+The strict pilot establishes a behavior diagnostic, not a causal GRPO result. Exact provenance and evaluation distinctions are maintained in the [research index](research/README.md).
+
+## A lesson from the project: multi-turn is not automatic
+
+The controlled Hotpot-MT environment uses bridge questions, top-k 1 retrieval, bounded observations, and a three-search budget. Earlier top-k 3 retrieval often exposed enough evidence in one call. In the fixed Qwen3-8B strict pilot, P(search >= 2) = 31.5%; exactly-two-search episodes had 52.63% EM versus 9.49% after one search. This is an observed pilot association, not causal proof or a finished GRPO result.
+
+The **Strict Hotpot-MT** set is a controlled multi-turn stress test, not an unmodified standard HotpotQA benchmark. **Natural Bridge-Hard** is the less-filtered secondary evaluation; both are described in the research index.
+
+## Tool-use metrics
+
+The project separates:
+
+attempted → emitted tool-call openings; valid → parseable calls; executed → calls accepted by the environment; useful → searches that add a supporting title; wasted → executed searches that add no new supporting title.
+
+This makes “use fewer tools” testable without treating necessary evidence gathering as waste. Cost-aware reward remains planned until the active vanilla gate is accepted.
+
+## Research status
+
+M0–M3 are accepted. The formal strict Qwen3-8B vanilla GRPO run is active, so final M4 and all cost-aware/M5 claims remain TBD. The original canonical 2,000-example run and bounded strict pilots are archived as evidence; see [PROGRESS.md](PROGRESS.md) for exact status and numbers.
+
+## Hardware and environments
+
+These are validated tiers, not universal minimums:
+
+| Tier | Requirement | Purpose |
+| --- | --- | --- |
+| Concepts / parser / search | CPU and Python 3.10+ | Examples 01, 02, and 04 |
+| Local ReAct | Local Qwen3-1.7B checkpoint and CUDA-capable memory as available | One bounded inference-only episode or baseline |
+| Full research | Four RTX A6000-class GPUs were used for the active Qwen3-8B strict run | Native verl + vLLM GRPO |
+
+The reference environment is recorded in [docs/environment_report.md](docs/environment_report.md). Inspect GPU ownership, memory, disk, and process ownership before every long run; large models, checkpoints, data, and logs belong outside the Git checkout.
+
+## Repository structure
+
+~~~text
+src/efficienttool_rl/   reusable agent, protocol, tools, data, rewards
+examples/                bounded learning entry points
+tutorials/               concise hands-on explanations
+research/                research question, evidence, and experiment index
+configs/                 reproducible training/tool configurations
+scripts/                 data preparation, evaluation, training, analysis
+tests/                   deterministic unit and integration tests
+docs/                    environment, milestone, and debugging records
+analysis/                failure analysis and diagnostics
+~~~
+
+## Contributing and credits
+
+Contributor workflow and research-safety rules are documented in [AGENTS.md](AGENTS.md). The project builds on Qwen, HotpotQA, Hugging Face Transformers/datasets, verl, and vLLM. Preserve their licenses and cite them when redistributing results. This checkout does not currently add a top-level project license; resolve that before publishing derived artifacts.
