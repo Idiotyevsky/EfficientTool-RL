@@ -281,3 +281,26 @@ was already about 14.7 GiB per card. The strict config was raised to `0.50`,
 and the retry used physical GPUs 0, 1, 3, and 4 because GPU2 and GPU7 were
 owned by unrelated services. vLLM then initialized successfully and entered
 validation/training without OOM.
+
+## 2026-08-27 — Strict Qwen3-8B vanilla GRPO sanity gate
+
+The bounded strict run used Qwen3-8B, 128 training prompts, group size four,
+four task-only GRPO updates, the bridge medium/hard Hotpot-MT artifacts,
+top-k=1, a 384-token observation bound, and a three-executed-search budget on
+four A6000 GPUs. It completed rollout, actor update, validation at steps 0/2/4,
+and FSDP checkpoint saving without OOM or traceback.
+
+Across 512 training rollouts, mean reward was 0.3039 with reward standard
+deviation 0.4383; 36.7% of groups had non-trivial reward variance and 63.3%
+were zero-variance. Actor gradient norms were non-zero at all four updates
+(4.04, 3.36, 2.81, 2.54), and the actor/optimizer checkpoint contains four
+model shards and four optimizer shards. Validation changed from step 0 to
+step 4: EM 0.240 to 0.320, F1 0.3635 to 0.4324, and valid-answer rate 0.91 to
+0.96. Executed search calls were stable at 1.62 to 1.60.
+
+Rollout behavior also confirmed the strict environment is genuinely
+multi-turn: executed searches averaged 1.502, 43.9% of episodes used at
+least two searches, and 65.8% of second searches added new supporting
+evidence. The run passed the technical sanity gate. It does not establish a
+full task-improvement claim; the 2,000-example strict vanilla run remains
+required before any cost reward is introduced.

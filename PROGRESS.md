@@ -5,8 +5,8 @@ M4 — Main Vanilla GRPO
 # Status
 
 IN PROGRESS — the original canonical M4 run is complete and archived.
-Strict Hotpot-MT vanilla GRPO is now entering a bounded Qwen3-8B sanity gate
-before the full strict experiment is accepted.
+The bounded Qwen3-8B strict Hotpot-MT vanilla GRPO sanity gate has passed;
+the full strict experiment is the next active run.
 
 # Completed
 
@@ -40,6 +40,8 @@ before the full strict experiment is accepted.
   canonical ToolAgentLoop adapter.
 - [x] Re-ran matched native validation with the canonical loop for both the
   base model and the existing 2k checkpoint.
+- [x] Completed the bounded Qwen3-8B strict Hotpot-MT vanilla GRPO sanity
+  run: four updates, actor update, validation before/after, and checkpoint.
 
 # In Progress
 
@@ -135,9 +137,20 @@ before the full strict experiment is accepted.
   searches, EM was 0.5263 versus 0.0949 after one search; this supports
   genuine information-completion behavior without forcing a fixed number of
   calls.
+- Strict Qwen3-8B vanilla GRPO sanity used 128 training prompts, group size
+  four, four updates, and the strict 100-example validation slice. Across
+  512 rollouts, mean reward was 0.3039, reward std 0.4383, non-trivial reward
+  groups 36.7%, and zero-variance groups 63.3%; actor grad norms were
+  non-zero at every step (4.04 → 2.54). Executed searches averaged 1.502,
+  with 43.9% multi-search episodes and 65.8% useful second searches.
+- The same validation protocol changed from step 0 to step 4 as follows:
+  EM 0.240 → 0.320, F1 0.3635 → 0.4324, valid-answer rate 0.91 → 0.96;
+  executed searches remained 1.62 → 1.60. This is technical sanity evidence,
+  not a full task-improvement claim. The saved FSDP checkpoint is under the
+  corresponding ZFS run directory outside Git.
 - Strict train/validation parquet artifacts are materialized and fingerprinted
-  outside Git; their SHA-256 values are recorded above. No strict GRPO or cost
-  reward result is being claimed yet.
+  outside Git; their SHA-256 values are recorded above. No strict full-run or
+  cost-reward result is being claimed yet.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency, not yet justification for launching cost shaping.
@@ -159,12 +172,12 @@ before the full strict experiment is accepted.
 
 # Next Actions
 
-1. Run the bounded Qwen3-8B strict vanilla GRPO sanity gate on four GPUs using
-   the fixed 2,000/100 train/validation artifacts and the corrected native
-   executed-search budget.
-2. Inspect group reward variance, executed-search trajectories, actor update,
-   and post-update validation before launching the full strict run.
-3. If the sanity gate passes, run strict Hotpot-MT vanilla GRPO and compare it
-   with the fixed ReAct pilot using executed, useful, and wasted calls.
+1. Launch the full strict Qwen3-8B vanilla GRPO run on the fixed 2,000/100
+   train/validation artifacts with the corrected native executed-search budget.
+2. Compare the final strict checkpoint with the fixed ReAct pilot using EM,
+   F1, executed/useful/wasted searches, turns, tokens, and search-count
+   distributions.
+3. Accept or reject the strict M4 gate from stored held-out evidence; do not
+   infer success from training reward alone.
 4. Only after strict vanilla GRPO is accepted, implement and sweep the
    success-gated waste-aware cost reward.
