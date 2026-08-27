@@ -1,83 +1,125 @@
-<p align="center"><img src="website/public/logo.svg" width="72" alt="MiniAgentRL logo"></p>
+<p align="center">
+  <img src="./assets/logo.svg" alt="MiniAgentRL logo" width="88" />
+</p>
 
 <h1 align="center">MiniAgentRL</h1>
 
-<p align="center"><strong>Learn Agentic Reinforcement Learning by building it.</strong></p>
-<p align="center">从 Tool Calling 到 Multi-turn Agent，再到真正的 GRPO 参数更新。</p>
-
 <p align="center">
-  <a href="https://idiotyevsky.github.io/EfficientTool-RL/"><strong>Learning Website</strong></a>
-  · <a href="https://idiotyevsky.github.io/EfficientTool-RL/playground/trajectories">Trajectory Explorer</a>
-  · <a href="research/README.md">Research Track</a>
+  <strong>Learn Agentic RL by building it.</strong><br />
+  从 Tool Calling 到 Multi-turn Agent，再到真正的 GRPO 参数更新。
 </p>
 
-MiniAgentRL 面向已有 Python 与基础 LLM inference 经验的读者。入口使用 CPU 示例与 Qwen3-1.7B bounded smoke；研究内核保留 Qwen3-8B、verl、vLLM、FSDP 与 native multi-turn GRPO。
+<p align="center">
+  <code>Qwen3</code> · <code>Tool Calling</code> · <code>Multi-turn</code> ·
+  <code>GRPO</code> · <code>verl</code> · <code>vLLM</code>
+</p>
+
+<p align="center">
+  <a href="website/learn/00-start.md">Start Learning</a> ·
+  <a href="website/index.md">Documentation source</a> ·
+  <a href="research/README.md">Research</a> ·
+  <a href="#quick-start">Quick Start</a>
+</p>
+
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10 or newer" /></a>
+  <a href="https://huggingface.co/Qwen"><img src="https://img.shields.io/badge/Qwen3-model-5B5CE2?style=flat-square" alt="Qwen3 model family" /></a>
+  <a href="https://huggingface.co/docs/trl/main/en/grpo_trainer"><img src="https://img.shields.io/badge/GRPO-training-6F6FE8?style=flat-square" alt="GRPO training" /></a>
+  <a href="https://github.com/volcengine/verl"><img src="https://img.shields.io/badge/verl-agent%20RL-0D8CA8?style=flat-square" alt="verl agent reinforcement learning" /></a>
+  <a href="https://github.com/vllm-project/vllm"><img src="https://img.shields.io/badge/vLLM-rollouts-16845B?style=flat-square" alt="vLLM rollouts" /></a>
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/hero-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="./assets/hero-light.svg" />
+  <img src="./assets/hero-light.svg" alt="MiniAgentRL architecture: a Qwen agent calls search, receives observations, produces a reward, and updates with GRPO" width="1200" />
+</picture>
 
 ## Why MiniAgentRL?
 
-许多 Agent 教程停在 `LLM + Tool + ReAct prompt`。这里继续追问：trajectory 如何形成 Reward？同一 Prompt 的 grouped rollouts 如何产生 Advantage？这些信号如何真正更新 policy？
+很多 Agent 教程停在 `LLM + Tool + Prompt`。MiniAgentRL 再向前走一层：把 Tool Call 放进真实的多轮环境，记录完整 trajectory，计算 reward，并用真实的 verl/vLLM GRPO pipeline 更新策略。
 
-```text
-Tool Calling → Multi-turn Interaction → Rollout → Reward
-             → GRPO Update → Efficient Tool-use Analysis
-```
+入口足够小，底层实现保持真实：先用 CPU 示例理解协议，再进入 Qwen3 的 Tool Calling 与 one-update smoke；想研究 Agent 行为时，可以继续查看 Strict Hotpot-MT、Qwen3-8B 和工具成本分析。
 
-- **Tool Calling**：区分 model output、parsed action 与 tool execution。
-- **Multi-turn**：让 Observation 回到 state，并检查真实 trajectory。
-- **GRPO**：从 group-relative Advantage 走到 verl/vLLM 的真实 optimizer update。
-- **Efficient Tool Use**：统计 attempted、valid、executed、useful 与 wasted calls。
+## What you will build
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><h3>01 · Tool Calling</h3><p>把模型生成的文本 action 解析成真实工具调用。</p></td>
+    <td width="25%" valign="top"><h3>02 · Multi-turn</h3><p>把 observation 放回 state，让 Agent 继续决策。</p></td>
+    <td width="25%" valign="top"><h3>03 · GRPO</h3><p>从 grouped trajectories 与 relative rewards 学习。</p></td>
+    <td width="25%" valign="top"><h3>04 · Efficient Tools</h3><p>区分 useful 与 wasted calls，而不是只数调用次数。</p></td>
+  </tr>
+</table>
+
+## Learning path
+
+<img src="./assets/course-roadmap.svg" alt="Learning roadmap from environment setup and tool calling to real Qwen, multi-turn agents, GRPO, and efficient tool use" width="1200" />
+
+从 [Chapter 00](website/learn/00-start.md) 开始，或直接打开 [Learn Track source](website/learn/index.md)。完整的交互式学习体验位于 `website/`，README 只保留入口和项目地图。
+
+## See an Agent use tools
+
+<img src="./assets/trajectory-preview.svg" alt="Illustrative scripted trajectory with two search calls, two observations, a final answer, and tool-use accounting" width="1200" />
+
+上图是一个 **illustrative scripted teaching fixture**，不是 benchmark 结果。项目的 analyzer 会把 `attempted → valid → executed → useful / wasted` 分开记录：一次必要的搜索，和一次没有带来新证据的搜索，不应被当成同一种成本。
+
+## Train the Agent with GRPO
+
+<img src="./assets/grpo-group.svg" alt="Conceptual GRPO view: four rollouts for one prompt become group-relative advantages and a policy update" width="1200" />
+
+同一个 prompt 生成多条 trajectory，模型学习的是它们之间的相对优劣。Learn Track 已经包含一次通过真实 verl/vLLM pipeline 的 one-update GRPO smoke：它证明 rollout、reward、gradient 和 optimizer update 串起来了，但不等于 benchmark 已经提升。
 
 ## Quick Start
 
-CPU-only examples 不下载模型：
+先跑不需要模型下载或 GPU 的 CPU 示例：
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/Idiotyevsky/EfficientTool-RL.git
+cd EfficientTool-RL
 pip install -e ".[test]"
-
-PYTHONPATH=src python examples/00_environment_check.py
 PYTHONPATH=src python examples/01_tool_calling.py
-PYTHONPATH=src python examples/02_multiturn_agent.py
-PYTHONPATH=src python examples/04_grpo_concepts.py
 ```
 
-完整 00→08 课程、expected output、交互式 GRPO group 与 trajectory UI 在 [Learning Website](https://idiotyevsky.github.io/EfficientTool-RL/) 中。网站本地运行：
+接下来：
 
-```bash
-cd website
-npm ci
-npm run dev
-```
+- [Run the Learn Track](website/learn/00-start.md)
+- [Run the real Qwen example](examples/README.md)
+- [Run GRPO smoke](website/learn/07-grpo-smoke.md)
 
-## Research Track
+## Learn Track · Research Track
+
+| Track | 适合谁 | 内容 |
+| --- | --- | --- |
+| **Learn Track** | 想建立 Agent RL 心智模型的学习者 | CPU-first examples、Qwen3-1.7B、trajectory inspection、真实 one-update smoke |
+| **Research Track** | 想复现实验与分析行为的研究者 | Qwen3-8B、Strict Hotpot-MT、verl/vLLM、vanilla GRPO、Natural Bridge-Hard |
+
+Research Track 的正式 strict vanilla run 仍在进行；cost-aware RL 与最终 M4/M5 结论保持 **TBD**。请从 [research/README.md](research/README.md) 和 [PROGRESS.md](PROGRESS.md) 查看证据与状态，不把 pilot/sanity evidence 当成最终 benchmark claim。
+
+## Current status
+
+| Area | Status |
+| --- | --- |
+| Learn Track | CPU examples、真实 Qwen Tool Calling、one-update GRPO smoke 已有验证记录 |
+| Research pipeline | Strict Hotpot-MT + Qwen3-8B vanilla GRPO formal run in progress |
+| Cost-aware objective | Planned after the vanilla gate; results TBD |
+
+## Project structure
 
 ```text
-Strict Hotpot-MT → Qwen3-8B → Vanilla multi-turn GRPO
-                 → Tool-use audit → Cost-aware RL
-                 → Natural Bridge-Hard evaluation
+src/efficienttool_rl/  production Agent, protocol, tools, rewards, metrics
+examples/               CPU-first learning entry points
+tutorials/              00→08 source tutorials
+website/                VitePress learning product
+configs/                reproducible training configurations
+scripts/                evaluation and GRPO entry points
+research/               research-facing index and evidence links
+tests/                  deterministic unit/integration tests
+assets/                 README visual identity and technical diagrams
 ```
 
-Strict Hotpot-MT 是 controlled multi-turn stress test，不是未修改的 HotpotQA benchmark。Formal strict vanilla run 仍在进行，最终 M4 与所有 cost-aware/M5 结论保持 **TBD**。证据、失败记录与 artifact fingerprints 见 [research/README.md](research/README.md) 和 [PROGRESS.md](PROGRESS.md)。
+## Credits & release status
 
-## Repository Map
+MiniAgentRL builds on [verl](https://github.com/volcengine/verl), [vLLM](https://github.com/vllm-project/vllm), Hugging Face tooling, Qwen3 and HotpotQA. Please preserve upstream licenses and dataset terms when extending or redistributing the project.
 
-```text
-website/                 VitePress learning product and interactive components
-src/efficienttool_rl/    production agent, protocol, tools, rewards, evaluation
-examples/                bounded entry points that reuse production code
-tutorials/               legacy Markdown source and compatibility notes
-configs/ + scripts/      real verl/vLLM training, evaluation, and analysis
-research/ + docs/        experiment index, evidence, environment, debug history
-tests/                   deterministic unit and integration tests
-```
-
-Public brand 使用 MiniAgentRL；Python package、配置变量与已有 artifact 继续使用 `efficienttool_rl` / `ETRL_*`，避免破坏研究复现。
-
-## Credits and release status
-
-项目基于 Qwen、HotpotQA、Hugging Face、verl 与 vLLM；再分发时请保留各上游项目和数据集的 license/citation 要求。
-
-**Public release blocker:** 本仓库当前没有顶层项目 LICENSE。在 owner 明确选择 license 之前，请勿将仓库宣传为已授权的 open-source project。
-
-Contributor 与 research-safety 规则见 [AGENTS.md](AGENTS.md)。
+This repository currently has no top-level `LICENSE` file. Before calling the project open-source or adding a license badge, choose and add an explicit project license.

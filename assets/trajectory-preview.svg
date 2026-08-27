@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">Illustrative multi-turn agent trajectory</title>
+  <desc id="desc">A scripted teaching trajectory shows a question, two search calls, two evidence observations, and a final answer with tool-use accounting.</desc>
+  <defs>
+    <style>
+      .eyebrow { font: 700 14px Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: .12em; }
+      .label { font: 700 17px Inter, ui-sans-serif, system-ui, sans-serif; }
+      .body { font: 500 15px Inter, ui-sans-serif, system-ui, sans-serif; }
+      .small { font: 600 12px Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; }
+      .metric { font: 700 28px Inter, ui-sans-serif, system-ui, sans-serif; }
+    </style>
+  </defs>
+  <rect x="8" y="8" width="1184" height="584" rx="26" fill="#151826" stroke="#2C3348" stroke-width="2"/>
+  <text x="44" y="49" class="eyebrow" fill="#A6A8FF">TRAJECTORY EXPLORER</text>
+  <rect x="865" y="27" width="286" height="32" rx="16" fill="#2A2634" stroke="#715E88"/>
+  <text x="1008" y="48" text-anchor="middle" class="small" fill="#D6BDEB">ILLUSTRATIVE · SCRIPTED FIXTURE</text>
+  <path d="M88 113V536" stroke="#59627A" stroke-width="3"/>
+  <circle cx="88" cy="121" r="8" fill="#8D8FF4"/><circle cx="88" cy="198" r="8" fill="#42C4D1"/><circle cx="88" cy="275" r="8" fill="#8D8FF4"/><circle cx="88" cy="352" r="8" fill="#42C4D1"/><circle cx="88" cy="429" r="8" fill="#8D8FF4"/><circle cx="88" cy="506" r="8" fill="#54C58B"/>
+  <rect x="126" y="91" width="625" height="60" rx="14" fill="#20243B" stroke="#696BEA" stroke-width="2"/><text x="150" y="117" class="small" fill="#A6A8FF">STATE 0</text><text x="150" y="139" class="label" fill="#EEF0FF">Question: Which person connects the two passages?</text>
+  <rect x="126" y="168" width="625" height="60" rx="14" fill="#12343D" stroke="#42C4D1" stroke-width="2"/><text x="150" y="194" class="small" fill="#8BE0E7">TURN 1 · ACTION</text><text x="150" y="216" class="label" fill="#EEF0FF">Search #1  ·  query: bridge entity</text>
+  <rect x="126" y="245" width="625" height="60" rx="14" fill="#202530" stroke="#58647A" stroke-width="2"/><text x="150" y="271" class="small" fill="#9CA7BD">TURN 1 · OBSERVATION</text><text x="150" y="293" class="label" fill="#E0E5F0">Evidence A  ·  unresolved entity found</text>
+  <rect x="126" y="322" width="625" height="60" rx="14" fill="#12343D" stroke="#42C4D1" stroke-width="2"/><text x="150" y="348" class="small" fill="#8BE0E7">TURN 2 · ACTION</text><text x="150" y="370" class="label" fill="#EEF0FF">Search #2  ·  query: resolved entity</text>
+  <rect x="126" y="399" width="625" height="60" rx="14" fill="#202530" stroke="#58647A" stroke-width="2"/><text x="150" y="425" class="small" fill="#9CA7BD">TURN 2 · OBSERVATION</text><text x="150" y="447" class="label" fill="#E0E5F0">Evidence B  ·  second supporting passage</text>
+  <rect x="126" y="476" width="625" height="60" rx="14" fill="#17352A" stroke="#54C58B" stroke-width="2"/><text x="150" y="502" class="small" fill="#8CE0B2">TERMINAL STATE</text><text x="150" y="524" class="label" fill="#EEF0FF">Final Answer  ✓  ·  episode complete</text>
+  <rect x="810" y="91" width="340" height="445" rx="18" fill="#181C2A" stroke="#2C3348"/>
+  <text x="842" y="130" class="eyebrow" fill="#9CA7BD">ACCOUNTING</text><text x="842" y="158" class="body" fill="#9CA7BD">Teaching example, not benchmark evidence.</text>
+  <text x="842" y="215" class="small" fill="#9CA7BD">EXECUTED</text><text x="842" y="250" class="metric" fill="#8BE0E7">2</text><text x="1000" y="215" class="small" fill="#9CA7BD">USEFUL</text><text x="1000" y="250" class="metric" fill="#8CE0B2">2</text>
+  <path d="M842 272H1118" stroke="#2C3348"/>
+  <text x="842" y="311" class="small" fill="#9CA7BD">WASTED</text><text x="842" y="346" class="metric" fill="#F2A6B0">0</text><text x="1000" y="311" class="small" fill="#9CA7BD">REWARD</text><text x="1000" y="346" class="metric" fill="#8CE0B2">1.0</text>
+  <path d="M842 368H1118" stroke="#2C3348"/>
+  <text x="842" y="407" class="small" fill="#9CA7BD">WHAT THE ANALYZER SEPARATES</text><text x="842" y="438" class="body" fill="#E0E5F0">attempted → valid → executed</text><text x="842" y="464" class="body" fill="#E0E5F0">useful ↔ wasted</text><text x="842" y="505" class="body" fill="#9CA7BD">Fewer calls is not automatically</text><text x="842" y="526" class="body" fill="#9CA7BD">better tool use.</text>
+</svg>
