@@ -1,0 +1,90 @@
+{
+  "provenance": "Scripted teaching fixtures derived from the tiny corpus and failure contracts in examples/02_multiturn_agent.py, examples/01_tool_calling.py, and the production AgentRunner. They are not model predictions or benchmark evidence.",
+  "trajectories": [
+    {
+      "id": "good-two-hop",
+      "label": "Good multi-turn",
+      "kind": "Teaching / scripted example",
+      "description": "两次搜索分别补齐人物与机器证据，随后正确作答。",
+      "question": "What machine did the person who wrote notes on Babbage's work write about?",
+      "finalAnswer": "Analytical Engine",
+      "terminationReason": "final_answer",
+      "reward": 1,
+      "metrics": { "attempted": 2, "valid": 2, "executed": 2, "useful": 2, "wasted": 0 },
+      "turns": [
+        { "role": "agent", "title": "Turn 1 · Tool Call", "content": "search(\"Ada Lovelace Babbage\")" },
+        { "role": "observation", "title": "Observation 1", "content": "Ada Lovelace wrote notes on Charles Babbage's Analytical Engine.", "useful": true },
+        { "role": "agent", "title": "Turn 2 · Tool Call", "content": "search(\"Analytical Engine\")" },
+        { "role": "observation", "title": "Observation 2", "content": "The Analytical Engine was a general-purpose mechanical computer.", "useful": true },
+        { "role": "answer", "title": "Turn 3 · Final Answer", "content": "Analytical Engine" }
+      ]
+    },
+    {
+      "id": "under-search",
+      "label": "Under-search",
+      "kind": "Teaching / scripted example",
+      "description": "没有执行搜索便猜测答案；成本低，但任务失败。",
+      "question": "What machine did Ada Lovelace write notes about?",
+      "finalAnswer": "Difference Engine",
+      "terminationReason": "final_answer",
+      "reward": 0,
+      "metrics": { "attempted": 0, "valid": 0, "executed": 0, "useful": 0, "wasted": 0 },
+      "turns": [
+        { "role": "answer", "title": "Turn 1 · Premature Answer", "content": "Difference Engine" }
+      ]
+    },
+    {
+      "id": "repeated-query",
+      "label": "Repeated query",
+      "kind": "Teaching / scripted example",
+      "description": "第二次执行了合法搜索，却没有带来新 supporting title。",
+      "question": "What machine did Ada Lovelace write notes about?",
+      "finalAnswer": "Analytical Engine",
+      "terminationReason": "final_answer",
+      "reward": 1,
+      "metrics": { "attempted": 2, "valid": 2, "executed": 2, "useful": 1, "wasted": 1 },
+      "turns": [
+        { "role": "agent", "title": "Turn 1 · Tool Call", "content": "search(\"Ada Lovelace\")" },
+        { "role": "observation", "title": "Observation 1", "content": "Retrieved supporting title: Ada Lovelace", "useful": true },
+        { "role": "agent", "title": "Turn 2 · Repeated Tool Call", "content": "search(\"Ada Lovelace\")" },
+        { "role": "observation", "title": "Observation 2", "content": "Same supporting title; no new evidence.", "useful": false },
+        { "role": "answer", "title": "Turn 3 · Final Answer", "content": "Analytical Engine" }
+      ]
+    },
+    {
+      "id": "invalid-tool-call",
+      "label": "Invalid Tool Call",
+      "kind": "Teaching / scripted example",
+      "description": "模型尝试调用工具，但 JSON 未闭合，parser 将其记录为 InvalidAction。",
+      "question": "Find evidence about Ada Lovelace.",
+      "finalAnswer": null,
+      "terminationReason": "max_turns",
+      "reward": 0,
+      "metrics": { "attempted": 1, "valid": 0, "executed": 0, "useful": 0, "wasted": 0 },
+      "turns": [
+        { "role": "invalid", "title": "Turn 1 · Malformed Action", "content": "<tool_call>{\"name\":\"search\",\"arguments\":{\"query\":\"Ada Lovelace\"}</tool_call>" },
+        { "role": "observation", "title": "Recovery Observation", "content": "malformed_json · Return exactly one valid action block.", "useful": false }
+      ]
+    },
+    {
+      "id": "wasted-third-search",
+      "label": "Wasted third call",
+      "kind": "Teaching / scripted example",
+      "description": "前两次搜索已经补齐证据，第三次搜索没有信息增益。",
+      "question": "What machine did Ada Lovelace write notes about?",
+      "finalAnswer": "Analytical Engine",
+      "terminationReason": "final_answer",
+      "reward": 1,
+      "metrics": { "attempted": 3, "valid": 3, "executed": 3, "useful": 2, "wasted": 1 },
+      "turns": [
+        { "role": "agent", "title": "Turn 1 · Tool Call", "content": "search(\"Ada Lovelace\")" },
+        { "role": "observation", "title": "Observation 1", "content": "New supporting title: Ada Lovelace", "useful": true },
+        { "role": "agent", "title": "Turn 2 · Tool Call", "content": "search(\"Analytical Engine\")" },
+        { "role": "observation", "title": "Observation 2", "content": "New supporting title: Analytical Engine", "useful": true },
+        { "role": "agent", "title": "Turn 3 · Extra Tool Call", "content": "search(\"Charles Babbage machine\")" },
+        { "role": "observation", "title": "Observation 3", "content": "No previously unseen supporting title.", "useful": false },
+        { "role": "answer", "title": "Turn 4 · Final Answer", "content": "Analytical Engine" }
+      ]
+    }
+  ]
+}
