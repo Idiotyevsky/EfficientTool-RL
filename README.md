@@ -15,9 +15,9 @@
 </p>
 
 <p align="center">
-  <a href="website/learn/00-start.md">Start Learning</a> ·
-  <a href="website/index.md">Learning Website</a> ·
-  <a href="research/README.md">Research</a> ·
+  <a href="https://idiotyevsky.github.io/EfficientTool-RL/learn/00-start">Start Learning</a> ·
+  <a href="https://idiotyevsky.github.io/EfficientTool-RL/">Learning Website</a> ·
+  <a href="https://idiotyevsky.github.io/EfficientTool-RL/research/">Research</a> ·
   <a href="#quick-start">Quick Start</a>
 </p>
 
@@ -56,7 +56,7 @@
 
 <img src="./assets/course-roadmap.svg" alt="Learning roadmap from environment setup and tool calling to real Qwen, multi-turn agents, GRPO, and efficient tool use" width="1200" />
 
-从 [Chapter 00](website/learn/00-start.md) 开始。完整课程包含交互式轨迹、GRPO 可视化与可运行示例： [Start Learning](website/index.md)。
+从 [Chapter 00](https://idiotyevsky.github.io/EfficientTool-RL/learn/00-start) 开始。完整课程包含交互式轨迹、GRPO 可视化与可运行示例： [Start Learning](https://idiotyevsky.github.io/EfficientTool-RL/)。
 
 ## See an Agent use tools
 
@@ -83,9 +83,9 @@ PYTHONPATH=src python examples/01_tool_calling.py
 
 接下来：
 
-- [Run the Learn Track](website/learn/00-start.md)
+- [Run the Learn Track](https://idiotyevsky.github.io/EfficientTool-RL/learn/00-start)
 - [Run the real Qwen example](examples/README.md)
-- [Run GRPO smoke](website/learn/07-grpo-smoke.md)
+- [Run GRPO smoke](https://idiotyevsky.github.io/EfficientTool-RL/learn/07-grpo-smoke)
 
 ## Learn Track · Research Track
 
@@ -94,7 +94,7 @@ PYTHONPATH=src python examples/01_tool_calling.py
 | **Learn Track** | 想建立 Agent RL 心智模型的学习者 | CPU-first examples、Qwen3-1.7B、trajectory inspection、真实 one-update smoke |
 | **Research Track** | 想复现实验与分析行为的研究者 | Qwen3-8B、Strict Hotpot-MT、verl/vLLM、vanilla GRPO、Natural Bridge-Hard |
 
-Research Track 正在评估 Qwen3-8B 上的 vanilla GRPO；cost-aware 训练将在基线评估完成后开展，结果会随实验进展更新。证据与方法见 [research/README.md](research/README.md)。
+Research Track 正在评估 Qwen3-8B 上的 vanilla GRPO；cost-aware 训练将在基线评估完成后开展，结果会随实验进展更新。证据与方法见 [research/README.md](https://idiotyevsky.github.io/EfficientTool-RL/research/)。
 
 ## Current status
 
