@@ -150,3 +150,46 @@ alter rewards or rollouts.
 tool calls were 2/154 = 1.30% of raw calls and appeared in 1/128 = 0.78% of
 episodes; unknown tool calls were zero. The analyzer is covered by the full
 44-test suite. These values are diagnostics, not a task-performance claim.
+
+## 2026-08-27 — Native/local evaluator protocol reconciliation
+
+**Symptom:** On the same held-out indices, the legacy native evaluator scored
+the base/final models at EM/F1 0.010/0.010 and 0.040/0.0517, while the local
+evaluator scored them at 0.340/0.4356 and 0.380/0.4755.
+
+**Cause:** The async native `ToolAgentLoop` delegated parsing to verl's Hermes
+parser, which extracts tool calls but does not enforce the project's exactly
+one-action protocol or stop generation at the first complete answer. Async
+validation also does not consume `val_kwargs.max_tokens` as a per-turn limit;
+the server derives a larger context remainder. Serialized outputs therefore
+contained repeated/mixed answer blocks and malformed calls. Prompt wording and
+tool-schema descriptions were duplicated and had also drifted.
+
+**Fix:** Centralized the prompt and search schema in `protocol.py`, made the
+local runner use the same first-action boundary, and added a thin
+`CanonicalToolAgentLoop` subclass selected through `agent_loop_config_path`.
+The adapter reuses verl tool execution and response masks, but validates each
+generated turn with `parse_action`, rejects mixed/multiple actions, and trims a
+valid generation at its first complete action. The upstream OPD/verl checkout
+was not modified.
+
+**Validation:** 47/47 tests pass. On the fixed 100-example slice, canonical
+native base/final achieved EM/F1 0.350/0.4204 and 0.400/0.4930, with valid-answer
+rates 0.85/0.83 and post-hoc malformed-call rate 0. The canonical local
+evaluator achieved 0.340/0.4220 and 0.380/0.4775. The existing checkpoint was
+trained before this adapter was installed; a canonical-loop retraining run is
+required before accepting the final M4 claim.
+
+## 2026-08-27 — Canonical validation resource conflict
+
+**Symptom:** A duplicate final validation attempt failed during vLLM startup
+because GPU 1 had only 2.3 GiB free.
+
+**Cause:** An earlier project-owned validation session was still initializing
+on that GPU; the duplicate attempt was launched before its delayed startup was
+visible in the log.
+
+**Action:** Kept the already-running original validation, recorded the
+duplicate as failed infrastructure evidence, and did not terminate any
+unrelated process. The original completed successfully; no metric from the
+failed duplicate was used.

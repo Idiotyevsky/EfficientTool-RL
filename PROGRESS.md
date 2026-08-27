@@ -4,8 +4,8 @@ M4 — Main Vanilla GRPO
 
 # Status
 
-IN PROGRESS — formal training complete; evaluation protocol reconciliation
-required before accepting M4.
+IN PROGRESS — canonical evaluator reconciliation passed; canonical-loop
+retraining is required before the final M4 claim is accepted.
 
 # Completed
 
@@ -34,19 +34,22 @@ required before accepting M4.
   the Git checkout.
 - [x] Evaluated the final model and base model on the same fixed native verl
   held-out slice (validation indices 100–199), 100 examples each.
+- [x] Unified the prompt, search schema, action parser, and first-action
+  boundary across the local evaluator and native verl through a project-local
+  canonical ToolAgentLoop adapter.
+- [x] Re-ran matched native validation with the canonical loop for both the
+  base model and the existing 2k checkpoint.
 
 # In Progress
 
-- Reconcile the native verl evaluator with the earlier local evaluator before
-  accepting the M4 task-performance gate; inspect matched trajectories and
-  answer extraction semantics.
+- Re-run the formal 2k vanilla GRPO experiment with the canonical loop so
+  training-time and evaluation-time trajectory semantics are identical.
 
 # Blockers
 
-- No infrastructure blocker. Native verl and local held-out evaluators produce
-  materially different absolute scores; no M4 improvement claim is accepted
-  until their prompt, decoding, parser, and answer-extraction semantics are
-  aligned.
+- No infrastructure blocker. The existing 2k checkpoint was trained before
+  the canonical loop was installed, so its corrected evaluation is diagnostic
+  evidence rather than the final end-to-end M4 claim.
 
 # Latest Evidence
 
@@ -85,8 +88,15 @@ required before accepting M4.
   rate 0.50%→1.00%. This is promising but not yet the accepted M4 claim.
 - Native verl evaluator on the same heldout100: base EM/F1 0.010/0.010,
   valid-answer rate 0.09; final GRPO EM/F1 0.040/0.0517, valid-answer rate
-  0.12. The native protocol also emits frequent malformed tool-call decode
-  warnings, so the protocol mismatch is under investigation.
+  0.12. This is retained as legacy-protocol diagnostic evidence.
+- Canonical native evaluator on the same validation indices: base EM/F1
+  0.350/0.4204 with valid-answer rate 0.85; existing final checkpoint
+  0.400/0.4930 with valid-answer rate 0.83. Post-hoc malformed-call rate was
+  0 for both, and search-call averages were 1.00 and 1.00.
+- Canonical local evaluator on the same 100 examples: base EM/F1
+  0.340/0.4220; existing final checkpoint 0.380/0.4775. These close results
+  validate the cross-evaluator protocol alignment, but the checkpoint still
+  needs canonical-loop retraining for a final M4 claim.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency, not yet justification for launching cost shaping.
@@ -108,9 +118,9 @@ required before accepting M4.
 
 # Next Actions
 
-1. Compare matched native/local trajectories and align generation, chat
-   template, tool-call parsing, and answer extraction semantics.
-2. Re-run the fixed heldout comparison after alignment and inspect at least
-   20 successes and 20 failures per protocol.
+1. Launch the canonical-loop 2k vanilla GRPO run with the approved seed and
+   hyperparameters.
+2. Evaluate its held-out checkpoint against the canonical base protocol and
+   inspect at least 20 successes and 20 failures.
 3. Only after the M4 gate is accepted, decide whether M5 should penalize
    search calls, redundant queries, or token/trajectory cost.
