@@ -339,3 +339,39 @@ It contains 200 rows, uses the official validation SHA-256
 artifact SHA-256
 `1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`. No
 evaluation score is claimed until the final strict checkpoint is available.
+
+## 2026-08-27 — Learn Track GRPO smoke validation
+
+The first real Learn Track smoke used Qwen3-1.7B, four prompts, four rollouts
+per prompt, one GPU, and one task-only GRPO update. Its first launch stopped
+before training because a detached shell could not find the already-installed
+`ninja` executable; no checkpoint was produced. The wrapper now prepends the
+selected Python environment's `bin` directory to `PATH` and adds the local
+`src` directory to `PYTHONPATH`.
+
+The rerun completed Ray/vLLM rollout, validation, an actor checkpoint, and the
+one-step training loop without OOM or traceback. The 16 sampled trajectories
+and validation rows all received zero task reward, so the logged actor
+gradient norm was zero. This is valid plumbing evidence, not evidence of
+learning; the course explicitly asks learners to inspect reward variance and
+formatting before interpreting an update.
+
+## 2026-08-27 — Optional Qwen3-4B smoke
+
+A separate Qwen3-4B one-update smoke was attempted on one A6000 for model
+comparison. vLLM exited before rollout because the actor left 16.37 GiB free
+while the configured 0.35 utilization requested 16.68 GiB. The trial produced
+no checkpoint and is not used by the Learn Track; the default remains Qwen3-1.7B.
+
+## 2026-08-27 — Learn Track 8×4 smoke with a real update
+
+After increasing only the bounded teaching slice, Qwen3-1.7B completed eight
+training prompts, four rollouts per prompt, one update, and eight validation
+prompts on one A6000. The run produced 32 rollout rows and saved actor and
+optimizer checkpoints. The training log reported mean reward 0.15625, a
+non-zero advantage range, and actor `grad_norm=4.333`; this is direct evidence
+that the real verl path reached an optimizer update.
+
+Post-update validation had valid-answer rate 0.25 but EM/F1 0/0. This is not a
+task-improvement claim; it is the minimal real learning-signal checkpoint used
+to teach learners to inspect both optimization and task metrics.

@@ -37,25 +37,41 @@ flowchart LR
 
 ## Learning path
 
-1. [Tool calling example](examples/01_tool_calling.py)
-2. [Multi-turn loop example](examples/02_multiturn_agent.py)
-3. [ReAct on HotpotQA](examples/03_react_hotpot.py)
-4. [GRPO concepts](examples/04_grpo_concepts.py)
-5. Read the [tutorials](tutorials/) and then the [research track](research/).
+Follow the hands-on [00→08 course](tutorials/):
+
+1. [00 — Environment and Agent RL map](tutorials/00_environment_and_map.md)
+2. [01 — Tool Calling basics](tutorials/01_tool_calling_basics.md)
+3. [02 — Qwen’s first real Tool Call](tutorials/02_real_qwen_tool_calling.md)
+4. [03 — Multi-turn Agent](tutorials/03_multiturn_agent.md)
+5. [04 — ReAct + HotpotQA](tutorials/04_react_hotpot.md)
+6. [05 — Rollouts, Environment, and Reward](tutorials/05_rollouts_rewards_environment.md)
+7. [06 — GRPO from formula to config](tutorials/06_grpo_for_agents.md)
+8. [07 — Real GRPO smoke](tutorials/07_grpo_smoke.md)
+9. [08 — Efficient Tool Use](tutorials/08_efficient_tool_use.md)
+
+The matching runnable entry points are indexed in [examples/README.md](examples/README.md). The [research track](research/) documents the full Qwen3-8B experiment.
 
 ## Quick Start — Learn Track
 
-The first two examples use a tiny deterministic corpus and do not download a model.
+The CPU-only examples below use deterministic inputs and do not download a model.
 
 ~~~bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[test]"
 
+PYTHONPATH=src python examples/00_environment_check.py
 PYTHONPATH=src python examples/01_tool_calling.py
 PYTHONPATH=src python examples/02_multiturn_agent.py
 PYTHONPATH=src python examples/04_grpo_concepts.py
 python -m pytest -q
+~~~
+
+To see a real Qwen-generated Tool Call, use the smallest model-backed lesson:
+
+~~~bash
+PYTHONPATH=src python examples/02_real_qwen_tool_calling.py \
+  --model /path/to/Qwen3-1.7B
 ~~~
 
 For a real local ReAct episode, install the model extras and provide a local normalized HotpotQA JSONL file and a local Qwen checkpoint:
