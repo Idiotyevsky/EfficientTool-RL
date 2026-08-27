@@ -25,6 +25,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument(
+        "--question-type",
+        choices=("all", "bridge", "comparison"),
+        default="all",
+    )
+    parser.add_argument(
+        "--levels",
+        nargs="+",
+        choices=("easy", "medium", "hard"),
+        help="Optional difficulty filter applied before start-index/limit.",
+    )
     parser.add_argument("--max-turns", type=int, default=5)
     parser.add_argument("--max-search-calls", type=int, default=3)
     parser.add_argument("--top-k", type=int, default=3)
@@ -65,6 +76,11 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     examples = load_hotpotqa(args.data, split="validation")
+    if args.question_type != "all":
+        examples = [example for example in examples if example.question_type == args.question_type]
+    if args.levels:
+        allowed_levels = set(args.levels)
+        examples = [example for example in examples if example.level in allowed_levels]
     selected = examples[args.start_index : args.start_index + args.limit]
     if len(selected) != args.limit:
         raise ValueError("requested range exceeds the dataset")
@@ -150,6 +166,8 @@ def main() -> None:
         "device": args.device,
         "start_index": args.start_index,
         "limit": args.limit,
+        "question_type": args.question_type,
+        "levels": args.levels,
         "max_turns": args.max_turns,
         "max_search_calls": args.max_search_calls,
             "top_k": args.top_k,
