@@ -1,11 +1,13 @@
 import asyncio
 import json
+from types import SimpleNamespace
 
 from verl.tools.schemas import OpenAIFunctionToolSchema
 
 from efficienttool_rl.data import HotpotExample, Passage
 from efficienttool_rl.protocol import SEARCH_TOOL_SCHEMA, SYSTEM_PROMPT
 from efficienttool_rl.training import to_verl_record
+from efficienttool_rl.verl.canonical_agent_loop import resolve_max_executed_search_calls
 from efficienttool_rl.verl.search_tool import HotpotSearchTool
 
 
@@ -35,6 +37,19 @@ def test_verl_record_keeps_answer_out_of_tool_kwargs():
     assert kwargs["max_executed_search_calls"] == 3
     assert record["extra_info"]["question_type"] == "unknown"
     assert "supporting_titles" not in kwargs
+
+
+def test_native_search_budget_prefers_per_record_kwargs():
+    search_tool = SimpleNamespace(config={"max_executed_search_calls": 9})
+    assert (
+        resolve_max_executed_search_calls(
+            {"search": {"create_kwargs": {"max_executed_search_calls": 2}}},
+            {"search": search_tool},
+        )
+        == 2
+    )
+    assert resolve_max_executed_search_calls({}, {"search": search_tool}) == 9
+    assert resolve_max_executed_search_calls({}, {}, default=4) == 4
 
 
 def test_hotpot_search_tool_executes_isolated_bm25():

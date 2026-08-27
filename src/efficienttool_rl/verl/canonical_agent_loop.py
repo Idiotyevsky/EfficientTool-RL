@@ -8,13 +8,45 @@ editable dependency and is not modified by this project.
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 import json
+from collections.abc import Mapping
 from typing import Any
 
 from verl.experimental.agent_loop.tool_agent_loop import AgentData, AgentState, ToolAgentLoop
 from verl.experimental.agent_loop.tool_parser import FunctionCall
 
 from ..protocol import FinalAnswer, InvalidAction, ToolCall, parse_action
+
+
+_ACTIVE_AGENT_DATA: ContextVar[AgentData | None] = ContextVar(
+    "efficienttool_active_agent_data", default=None
+)
+
+
+def resolve_max_executed_search_calls(
+    tools_kwargs: Mapping[str, Any] | None,
+    tools: Mapping[str, Any],
+    *,
+    default: int = 3,
+) -> int:
+    """Resolve the per-trajectory search budget used by the native loop."""
+    record_kwargs = (tools_kwargs or {}).get("search", {})
+    create_kwargs = (
+        record_kwargs.get("create_kwargs", {})
+        if isinstance(record_kwargs, Mapping)
+        else {}
+    )
+    if isinstance(create_kwargs, Mapping) and "max_executed_search_calls" in create_kwargs:
+        value = create_kwargs["max_executed_search_calls"]
+    else:
+        search_tool = tools.get("search")
+        tool_config = getattr(search_tool, "config", {})
+        value = tool_config.get("max_executed_search_calls", default)
+    value = int(value)
+    if value < 0:
+        raise ValueError("max_executed_search_calls must be non-negative")
+    return value
 
 
 def _find_subsequence(sequence: list[int], needle: list[int]) -> int | None:
@@ -29,6 +61,25 @@ def _find_subsequence(sequence: list[int], needle: list[int]) -> int | None:
 
 class CanonicalToolAgentLoop(ToolAgentLoop):
     """Use the project action protocol at every native generation boundary."""
+
+    async def _handle_processing_tools_state(self, agent_data: AgentData) -> AgentState:
+        """Expose the active trajectory to the tool-execution accounting hook."""
+        token = _ACTIVE_AGENT_DATA.set(agent_data)
+        try:
+            return await super()._handle_processing_tools_state(agent_data)
+        finally:
+            _ACTIVE_AGENT_DATA.reset(token)
+
+    async def _call_tool(
+        self, tool_call: FunctionCall, tools_kwargs: dict[str, Any]
+    ) -> tuple[Any, float, dict[str, Any]]:
+        response, reward, metrics = await super()._call_tool(tool_call, tools_kwargs)
+        agent_data = _ACTIVE_AGENT_DATA.get()
+        if agent_data is not None and tool_call.name == "search":
+            if int(metrics.get("executed_search_calls", 0)) > 0:
+                key = "efficienttool_executed_search_calls"
+                agent_data.metrics[key] = int(agent_data.metrics.get(key, 0)) + 1
+        return response, reward, metrics
 
     async def _handle_generating_state(
         self, agent_data: AgentData, sampling_params: dict[str, Any], ignore_termination: bool = False
@@ -57,6 +108,17 @@ class CanonicalToolAgentLoop(ToolAgentLoop):
                     arguments=json.dumps(action.arguments, ensure_ascii=False),
                 )
             ]
+            if action.name == "search":
+                executed_search_calls = int(
+                    agent_data.metrics.get("efficienttool_executed_search_calls", 0)
+                )
+                max_executed_search_calls = resolve_max_executed_search_calls(
+                    agent_data.tools_kwargs, self.tools
+                )
+                if executed_search_calls >= max_executed_search_calls:
+                    agent_data.tool_calls = []
+                    agent_data.metrics["efficienttool_tool_budget_exhausted"] = 1
+                    return AgentState.TERMINATED
             return AgentState.PROCESSING_TOOLS
 
         if state is AgentState.TERMINATED and isinstance(action, FinalAnswer):
