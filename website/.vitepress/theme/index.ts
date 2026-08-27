@@ -1,8 +1,10 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import './custom.css'
+import './landing.css'
 
 import AgentLoopDemo from '../../components/AgentLoopDemo.vue'
+import BilingualLanding from '../../components/BilingualLanding.vue'
 import ConceptFlow from '../../components/ConceptFlow.vue'
 import CourseMap from '../../components/CourseMap.vue'
 import GRPOGroupDemo from '../../components/GRPOGroupDemo.vue'
@@ -15,6 +17,7 @@ export default {
   extends: DefaultTheme,
   enhanceApp({ app }) {
     app.component('AgentLoopDemo', AgentLoopDemo)
+    app.component('BilingualLanding', BilingualLanding)
     app.component('ConceptFlow', ConceptFlow)
     app.component('CourseMap', CourseMap)
     app.component('GRPOGroupDemo', GRPOGroupDemo)
