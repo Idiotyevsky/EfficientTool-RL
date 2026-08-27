@@ -148,10 +148,14 @@ the formal 2,000-example strict run is now active.
   executed searches remained 1.62 → 1.60. This is technical sanity evidence,
   not a full task-improvement claim. The saved FSDP checkpoint is under the
   corresponding ZFS run directory outside Git.
+- Prepared a fixed Natural Bridge-Hard secondary validation artifact outside
+  Git: 200 bridge/hard validation rows without the strict answer-absence filter,
+  using the same top-k=1, 384-token, three-executed-search limits. Its SHA-256
+  is `1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`.
 - Formal strict Qwen3-8B vanilla GRPO is running as
   `qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1` on A6000-1 physical GPUs
-  0, 1, 4, and 6. At the latest checkpoint it had completed 3/62 updates,
-  written `rollouts/1.jsonl` through `rollouts/3.jsonl`, and shown no fatal
+  0, 1, 4, and 6. At the 15:33 checkpoint it had completed 7/62 updates,
+  written `rollouts/1.jsonl` through `rollouts/7.jsonl`, and shown no fatal
   runtime error. The earlier startup failure is retained separately.
 - Strict train/validation parquet artifacts are materialized and fingerprinted
   outside Git; their SHA-256 values are recorded above. No strict full-run or

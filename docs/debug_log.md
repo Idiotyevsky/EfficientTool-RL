@@ -305,6 +305,7 @@ evidence. The run passed the technical sanity gate. It does not establish a
 full task-improvement claim; the 2,000-example strict vanilla run remains
 required before any cost reward is introduced.
 
+
 ## 2026-08-27 — Strict 2,000-example vanilla GRPO launch
 
 The formal Qwen3-8B strict vanilla run was launched from the corrected upstream
@@ -315,3 +316,26 @@ directory; it produced no training output and is retained as startup-failure
 evidence. A unique retry directory was used rather than overwriting it.
 
 The active retry is
+`qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1`. It loaded the fixed 2,000/100
+strict parquet artifacts, initialized Ray and vLLM, completed initial
+validation, and reached 7/62 updates with sequential rollout files and no
+OOM, traceback, or unrelated-process intervention. The first complete update
+took 16:29; updates 2 and 3 took approximately 15:44 and 15:46. This is an
+active run, not a final M4 result; held-out comparison and gate acceptance wait
+for its completion.
+
+## 2026-08-27 — Natural Bridge-Hard secondary evaluation artifact
+
+To address the distribution-shift concern around the strict candidate filter,
+the official validation artifact was filtered only by `question_type=bridge`
+and `level=hard`; it did not apply `is_two_hop_candidate` or inspect the answer
+when selecting rows. The first 200 rows were materialized as
+`verl_hotpotqa_mt_natural_bridge_hard_val_200.parquet` outside Git.
+
+The artifact retains the same runtime limits as the strict environment:
+top-k=1, a 384-token observation bound, and at most three executed searches.
+It contains 200 rows, uses the official validation SHA-256
+`c878eb9b73efd7f660dc8bc5fcf0d4a7316122608a0a6846d2da638b56d3739e`, and has
+artifact SHA-256
+`1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`. No
+evaluation score is claimed until the final strict checkpoint is available.
