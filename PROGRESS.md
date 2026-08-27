@@ -4,7 +4,8 @@ M4 — Main Vanilla GRPO
 
 # Status
 
-IN PROGRESS
+IN PROGRESS — formal training complete; evaluation protocol reconciliation
+required before accepting M4.
 
 # Completed
 
@@ -28,16 +29,24 @@ IN PROGRESS
 - [x] M3 technical learning-signal gate passed on the reward-fixed smoke.
 - [x] Verified a one-update, three-GPU vanilla GRPO smoke with rollout,
   validation, actor update, and world-size-3 checkpoint output.
+- [x] Completed the formal 2,000-example vanilla GRPO run on two GPUs: 62/62
+  updates, 7,936 rollout rows, final checkpoint and merged model saved outside
+  the Git checkout.
+- [x] Evaluated the final model and base model on the same fixed native verl
+  held-out slice (validation indices 100–199), 100 examples each.
 
 # In Progress
 
-- Run the formal 2,000-example vanilla GRPO experiment on two confirmed-free
-  GPUs, then evaluate the final checkpoint on the fixed held-out slice.
+- Reconcile the native verl evaluator with the earlier local evaluator before
+  accepting the M4 task-performance gate; inspect matched trajectories and
+  answer extraction semantics.
 
 # Blockers
 
-- No infrastructure blocker. Task-performance evidence is still insufficient
-  for claims; M4 must establish the vanilla GRPO baseline before cost shaping.
+- No infrastructure blocker. Native verl and local held-out evaluators produce
+  materially different absolute scores; no M4 improvement claim is accepted
+  until their prompt, decoding, parser, and answer-extraction semantics are
+  aligned.
 
 # Latest Evidence
 
@@ -64,6 +73,23 @@ IN PROGRESS
 - The three-GPU smoke completed in 6:04 with 30 prompts, world-size-3 model
   and optimizer shards, and no runtime error. The formal run is now
   `qwen1.7b_grpo_hotpotqa_2000_2gpu_seed42` on A6000-6 GPUs 0–1.
+- Formal 2k run completed cleanly: 62/62 updates, final task-only reward
+  0.5042 at step 62, overall rollout reward 0.3786, EM 0.3497, F1 0.4075,
+  valid-answer rate 0.7088, and zero-variance group ratio 0.6840.
+- Formal rollout behavior: valid search calls averaged 1.1604; assistant
+  turns averaged 2.1035; generated model tokens averaged 338.8; malformed
+  tool-call rate was 2.05%; duplicate-query episode rate was 2.72%.
+- Independent local evaluator on fixed heldout100 (same evaluator and
+  generation settings): base EM/F1 0.340/0.4356, final GRPO 0.380/0.4755;
+  search calls 1.000→0.990, generated tokens 44.42→49.83, and invalid-action
+  rate 0.50%→1.00%. This is promising but not yet the accepted M4 claim.
+- Native verl evaluator on the same heldout100: base EM/F1 0.010/0.010,
+  valid-answer rate 0.09; final GRPO EM/F1 0.040/0.0517, valid-answer rate
+  0.12. The native protocol also emits frequent malformed tool-call decode
+  warnings, so the protocol mismatch is under investigation.
+- Search-count analysis shows a long tail (rare episodes with 10–14 searches)
+  and lower accuracy as search count increases; this is evidence for studying
+  efficiency, not yet justification for launching cost shaping.
 - Official train artifact: 90,447 normalized records, SHA-256
   `89b6635152ea8f3038bdc9c7bac6708ceb718ec82b0a246fdc97ebab62a09ec2`;
   2,000-row parquet SHA-256
@@ -82,8 +108,9 @@ IN PROGRESS
 
 # Next Actions
 
-1. Monitor the formal 2,000-example vanilla GRPO run and retain its logs.
-2. Summarize rollout behavior and evaluate held-out EM/F1, search calls,
-   turns, length, and malformed actions.
-3. Decide whether the M4 behavior supports cost-aware M5 or a narrower cost
-   metric such as redundant queries/tokens.
+1. Compare matched native/local trajectories and align generation, chat
+   template, tool-call parsing, and answer extraction semantics.
+2. Re-run the fixed heldout comparison after alignment and inspect at least
+   20 successes and 20 failures per protocol.
+3. Only after the M4 gate is accepted, decide whether M5 should penalize
+   search calls, redundant queries, or token/trajectory cost.
