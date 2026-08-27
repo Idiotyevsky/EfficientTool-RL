@@ -4,8 +4,9 @@ M4 — Main Vanilla GRPO
 
 # Status
 
-IN PROGRESS — canonical evaluator reconciliation passed; canonical-loop
-retraining is active before the final M4 claim is accepted.
+IN PROGRESS — the original canonical M4 run is complete and archived.
+Strict Hotpot-MT vanilla GRPO is now entering a bounded Qwen3-8B sanity gate
+before the full strict experiment is accepted.
 
 # Completed
 
@@ -42,24 +43,29 @@ retraining is active before the final M4 claim is accepted.
 
 # In Progress
 
-- The formal 2k vanilla GRPO experiment is running with the canonical loop so
-  training-time and evaluation-time trajectory semantics are identical.
+- The canonical-loop 2k vanilla GRPO experiment is complete: 62/62 updates,
+  final native validation EM/F1 0.390/0.5110, and final checkpoint saved.
 - Search statistics now distinguish attempted, valid, executed, useful, and
   wasted calls; the historical canonical evaluator has been replayed under
   the new executed-call definition.
 - Hotpot-MT scaffolding is ready: official `type`/`level` metadata is retained,
   bridge/level filtering is available, and the native/local environment can
   enforce top-k and executed-search budgets consistently.
+- Strict Hotpot-MT data is materialized: train 2,000 rows
+  (SHA-256 `481774f211516ac0dde7f7287914b84e7a77a256e76478cb8ec5f4f4598ad820`)
+  and validation 100 rows
+  (SHA-256 `91044f84aaccb5bd5bdfa6ec2970575e5d8bd1636dd88bd37b5bdeb40b1da8be`).
+- Qwen3-1.7B/4B/8B strict pilots reached multi-search rates 3.0%/15.0%/31.5%;
+  the 8B pilot is the first strong enough candidate for strict vanilla GRPO.
 
 # Blockers
 
-- No infrastructure blocker. The existing 2k checkpoint was trained before
-  the canonical loop was installed, so its corrected evaluation is diagnostic
-  evidence rather than the final end-to-end M4 claim.
+- No infrastructure blocker. Original-environment M4 is complete; strict
+  Hotpot-MT vanilla GRPO remains the active research experiment.
 
 # Latest Evidence
 
-- Deterministic/unit tests: 50/50 passed (one upstream warning).
+- Deterministic/unit tests: 52/52 passed (two upstream warnings).
 - Held-out 60: EM 0.400, F1 0.506, completion 100%.
 - Average search calls: 1.000; average turns: 2.017.
 - Average supporting-title recall: 0.775.
@@ -101,16 +107,37 @@ retraining is active before the final M4 claim is accepted.
   0 for both, and search-call averages were 1.00 and 1.00.
 - Canonical local evaluator on the same 100 examples: base EM/F1
   0.340/0.4220; existing final checkpoint 0.380/0.4775. These close results
-  validate the cross-evaluator protocol alignment, but the checkpoint still
-  needs canonical-loop retraining for a final M4 claim.
-- Canonical-loop formal retraining launched on A6000-6 GPUs 0–1 with the
-  approved 2,000-example, 62-update configuration. At the latest checkpoint
-  it had reached 7/62 updates with rollout files through `6.jsonl` and no
-  OOM or traceback; final metrics are intentionally pending.
+  validate the cross-evaluator protocol alignment. The canonical-loop
+  retraining subsequently completed and is the accepted implementation for
+  the original-environment M4 comparison.
+- Canonical-loop formal retraining completed on A6000-6 GPUs 0–1 with the
+  approved 2,000-example, 62-update configuration and no OOM or traceback.
+- Its final native validation reached EM/F1 0.390/0.5110, valid-answer rate
+  0.94, and task reward 0.4505; global_step_62 was saved and merged outside
+  the Git checkout.
 - Replaying the canonical held-out outputs with executed-response accounting
   gives base/final average executed searches of 0.92/0.91, versus 1.00/1.00
   raw valid-call tags; useful-search rates are not inferred for unrun
   experiments and remain tied to stored trajectory evidence.
+- Strict Hotpot-MT pilot, Qwen3-1.7B, 200 bridge-hard candidates, question-
+  level top-1 incomplete, search top-k=1: EM/F1 0.070/0.1499,
+  average executed searches 1.035, `P(search>=2)=0.030`, and second-search
+  usefulness 0.8333. The second hop is highly valuable but the open policy
+  still answers after one search.
+- Qwen3-4B on the same 200 strict candidates: EM/F1 0.145/0.2411,
+  average executed searches 1.185, `P(search>=2)=0.15`, second-search
+  usefulness 0.50, and `P(search>=3)=0.035`. Scaling improves exploration
+  but remains one-search dominated.
+- Qwen3-8B on the same fixed strict candidates: EM/F1 0.215/0.3344,
+  average executed searches 1.345, `P(search>=2)=0.315`,
+  `P(search>=3)=0.030`, second-search usefulness 0.6190, and
+  successful multi-turn episode rate 0.15. Among examples with exactly two
+  searches, EM was 0.5263 versus 0.0949 after one search; this supports
+  genuine information-completion behavior without forcing a fixed number of
+  calls.
+- Strict train/validation parquet artifacts are materialized and fingerprinted
+  outside Git; their SHA-256 values are recorded above. No strict GRPO or cost
+  reward result is being claimed yet.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency, not yet justification for launching cost shaping.
@@ -132,10 +159,12 @@ retraining is active before the final M4 claim is accepted.
 
 # Next Actions
 
-1. Let the canonical-loop 2k vanilla GRPO run finish and preserve its logs.
-2. Materialize filtered Hotpot-MT train/validation parquet with bridge
-   questions, `top_k=1`, 384-token observations, and a three-search budget.
-3. Run a 100–200-example ReAct pilot and verify executed `search >= 2` and
-   useful second-search behavior before starting another GRPO run.
-4. Only after that pilot and the new vanilla GRPO gate pass, choose a
-   success-gated waste-aware cost reward for M5.
+1. Run the bounded Qwen3-8B strict vanilla GRPO sanity gate on four GPUs using
+   the fixed 2,000/100 train/validation artifacts and the corrected native
+   executed-search budget.
+2. Inspect group reward variance, executed-search trajectories, actor update,
+   and post-update validation before launching the full strict run.
+3. If the sanity gate passes, run strict Hotpot-MT vanilla GRPO and compare it
+   with the fixed ReAct pilot using executed, useful, and wasted calls.
+4. Only after strict vanilla GRPO is accepted, implement and sweep the
+   success-gated waste-aware cost reward.

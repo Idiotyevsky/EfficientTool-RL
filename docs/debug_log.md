@@ -207,7 +207,7 @@ The loader now retains HotpotQA `type` and `level`. Native and local tool
 configuration can enforce the same top-k cap, observation bound, and
 per-trajectory executed-search budget. A `hotpot_multi_turn.yaml` profile and
 filtered parquet-preparation options provide the next `bridge`-focused,
-`top_k=1` pilot environment. The 50-test suite passes; no cost reward has
+`top_k=1` pilot environment. The 52-test suite passes; no cost reward has
 been added yet.
 
 ## 2026-08-27 — Canonical-loop formal retraining launched
@@ -216,6 +216,53 @@ The corrected end-to-end M4 run was launched with the shared prompt/schema,
 the project-local `CanonicalToolAgentLoop`, Qwen3-1.7B, 2,000 training rows,
 group size four, seed 42, and 62 updates on A6000-6 GPUs 0–1. At the first
 progress check it advanced through 7/62 updates, produced sequential rollout
-files, and showed no OOM or traceback. The run remains in progress; no final
-M4 claim is made until its checkpoint is evaluated under the same canonical
-protocol.
+files and showed no OOM or traceback. It subsequently completed all 62
+updates without OOM or traceback. Final native validation
+reached EM/F1 0.390/0.5110 with valid-answer rate 0.94, and global_step_62
+was merged outside the Git checkout.
+
+## 2026-08-27 — Native executed-search budget lifecycle
+
+The first budget implementation stored the counter inside a search-tool
+instance. Native verl creates and releases that instance for each
+tool call, so the counter would reset between calls and the configured
+three-search limit was not actually trajectory-scoped.
+
+The canonical loop now records successful search executions in per-trajectory
+context and checks the per-record `max_executed_search_calls` before allowing
+another search action. A focused regression test verifies that record-level
+configuration takes precedence over the tool default.
+
+Validation: the full suite passes 52/52. The fix is project-local and does not
+modify the editable upstream verl checkout.
+
+## 2026-08-27 — Strict Hotpot-MT ReAct pilots
+
+The strict filter retained bridge-hard examples whose question-level BM25
+top-1 result contains exactly one supporting title and whose answer is absent
+from that passage and the question. With top-k=1 and a 384-token observation
+bound, Qwen3-1.7B completed 200 examples at EM/F1 0.070/0.1499, average
+executed searches 1.035, and multi-search rate 3.0%; the six second searches
+were useful in five cases.
+
+Qwen3-4B on the same fixed 200 examples reached EM/F1 0.145/0.2411, average
+executed searches 1.185, multi-search rate 15.0%, and second-search usefulness
+50.0%. The higher model size increases exploration, but both policies remain
+one-search dominated. The 1.7B/4B results are diagnostic evidence only; no
+strict GRPO training set or cost reward has been launched.
+
+## 2026-08-27 — Strict artifacts and Qwen3-8B pilot
+
+The strict train/validation artifacts were materialized from the official
+normalized HotpotQA split with bridge medium/hard filtering, question-level
+top-1 incompleteness, top-k=1, a 384-token observation bound, and a
+three-executed-search budget. The train artifact contains 2,000 rows
+(`481774f211516ac0dde7f7287914b84e7a77a256e76478cb8ec5f4f4598ad820`);
+the 100-row validation artifact contains
+`91044f84aaccb5bd5bdfa6ec2970575e5d8bd1636dd88bd37b5bdeb40b1da8be`.
+
+Qwen3-8B on the fixed 200-example strict ReAct pilot reached EM/F1
+0.215/0.3344, average executed searches 1.345, multi-search rate 31.5%,
+and second-search usefulness 0.6190. Exactly-two-search episodes reached
+EM 0.5263 versus 0.0949 after one search. This is sufficient evidence to
+enter a bounded vanilla GRPO sanity run; it is not a cost-aware result.
