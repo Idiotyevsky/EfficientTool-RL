@@ -8,7 +8,13 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from .protocol import FinalAnswer, InvalidAction, ToolCall, parse_action
+from .protocol import (
+    FinalAnswer,
+    InvalidAction,
+    ToolCall,
+    canonicalize_action_text,
+    parse_action,
+)
 
 Message = dict[str, str]
 ToolHandler = Callable[[dict[str, Any]], Any]
@@ -89,7 +95,7 @@ class AgentRunner:
         invalid_actions = 0
 
         for turn in range(self.config.max_turns):
-            model_output = self.policy.generate(tuple(messages))
+            model_output = canonicalize_action_text(self.policy.generate(tuple(messages)))
             action = parse_action(model_output)
             observation: dict[str, Any] | None = None
             termination_reason: str | None = None

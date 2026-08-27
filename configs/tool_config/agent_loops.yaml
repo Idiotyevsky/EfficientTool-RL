@@ -1,0 +1,2 @@
+- name: tool_agent
+  _target_: efficienttool_rl.verl.canonical_agent_loop.CanonicalToolAgentLoop

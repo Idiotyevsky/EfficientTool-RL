@@ -1,6 +1,12 @@
 import pytest
 
-from efficienttool_rl.protocol import FinalAnswer, InvalidAction, ToolCall, parse_action
+from efficienttool_rl.protocol import (
+    FinalAnswer,
+    InvalidAction,
+    ToolCall,
+    canonicalize_action_text,
+    parse_action,
+)
 
 
 def test_parses_valid_tool_call() -> None:
@@ -13,6 +19,21 @@ def test_parses_valid_tool_call() -> None:
 def test_allows_reasoning_around_one_action() -> None:
     action = parse_action('reasoning\n<answer>  final text  </answer>\ntrailing')
     assert action == FinalAnswer(answer="final text")
+
+
+def test_canonicalizes_valid_action_at_first_complete_block() -> None:
+    assert (
+        canonicalize_action_text('<answer>Paris</answer> repeated answer text')
+        == '<answer>Paris</answer>'
+    )
+    assert canonicalize_action_text(
+        'reasoning\n<tool_call>{"name":"search","arguments":{"query":"Paris"}}</tool_call>tail'
+    ).endswith('</tool_call>')
+
+
+def test_canonicalization_preserves_invalid_output_for_diagnostics() -> None:
+    malformed = '<answer>Paris</answer><answer>London</answer>'
+    assert canonicalize_action_text(malformed) == malformed
 
 
 @pytest.mark.parametrize(

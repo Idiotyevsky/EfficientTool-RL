@@ -5,15 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..data import HotpotExample
-
-SYSTEM_PROMPT = """You are a multi-hop question-answering tool agent.
-Use search to gather evidence for every entity needed by the question. Prefer
-concise, entity-specific queries and search again when evidence is incomplete.
-Emit exactly one action per turn:
-<tool_call>{\"name\":\"search\",\"arguments\":{\"query\":\"...\"}}</tool_call>
-or <answer>minimal answer span</answer>. The answer block must contain only
-the answer, never an explanation or full sentence. For yes/no questions, output
-exactly yes or no inside the answer block."""
+from ..protocol import SYSTEM_PROMPT
 
 
 def to_verl_record(

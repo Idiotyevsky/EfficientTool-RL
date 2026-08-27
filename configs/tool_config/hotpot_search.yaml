@@ -9,15 +9,15 @@ tools:
       type: function
       function:
         name: search
-        description: Search deterministic local HotpotQA evidence passages.
+        description: Search a deterministic local passage collection for evidence.
         parameters:
           type: object
           properties:
             query:
               type: string
-              description: A concise entity-specific evidence query.
+              description: A concise evidence-focused search query.
             top_k:
               type: integer
-              description: Maximum number of passages to return.
+              description: Number of results, from 1 to 3.
           required:
             - query

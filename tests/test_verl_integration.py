@@ -4,25 +4,13 @@ import json
 from verl.tools.schemas import OpenAIFunctionToolSchema
 
 from efficienttool_rl.data import HotpotExample, Passage
+from efficienttool_rl.protocol import SEARCH_TOOL_SCHEMA, SYSTEM_PROMPT
 from efficienttool_rl.training import to_verl_record
 from efficienttool_rl.verl.search_tool import HotpotSearchTool
 
 
 def schema() -> OpenAIFunctionToolSchema:
-    return OpenAIFunctionToolSchema.model_validate(
-        {
-            "type": "function",
-            "function": {
-                "name": "search",
-                "description": "Search local evidence.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"query": {"type": "string"}, "top_k": {"type": "integer"}},
-                    "required": ["query"],
-                },
-            },
-        }
-    )
+    return OpenAIFunctionToolSchema.model_validate(SEARCH_TOOL_SCHEMA)
 
 
 def example() -> HotpotExample:
@@ -39,6 +27,7 @@ def example() -> HotpotExample:
 def test_verl_record_keeps_answer_out_of_tool_kwargs():
     record = to_verl_record(example(), index=3)
     assert record["agent_name"] == "tool_agent"
+    assert record["prompt"][0]["content"] == SYSTEM_PROMPT
     assert record["reward_model"]["ground_truth"] == "London"
     kwargs = record["extra_info"]["tools_kwargs"]["search"]["create_kwargs"]
     assert "answer" not in kwargs

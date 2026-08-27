@@ -13,17 +13,8 @@ from efficienttool_rl.agent import AgentConfig, AgentRunner, JsonlTrajectoryWrit
 from efficienttool_rl.data import load_hotpotqa
 from efficienttool_rl.evaluation import answer_metrics, summarize_episodes
 from efficienttool_rl.policies import TransformersToolPolicy
+from efficienttool_rl.protocol import SYSTEM_PROMPT
 from efficienttool_rl.tools import BM25Search
-
-SYSTEM_PROMPT = """You are a multi-hop question-answering tool agent.
-Use search to gather evidence for every entity needed by the question. Prefer
-concise, entity-specific queries and avoid repeating a query. Search again when
-the current evidence leaves any required entity unresolved. Emit exactly one action per turn: either
-<tool_call>{"name":"search","arguments":{"query":"...","top_k":3}}</tool_call>
-or <answer>minimal answer span</answer>. The answer block must contain only the
-answer, never an explanation or full sentence. For yes/no questions, output
-exactly <answer>yes</answer> or <answer>no</answer>. Do not add text outside the
-action block."""
 
 
 def parse_args() -> argparse.Namespace:

@@ -8,6 +8,8 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from ..protocol import SEARCH_TOOL_SCHEMA
+
 
 class TransformersToolPolicy:
     def __init__(
@@ -42,29 +44,7 @@ class TransformersToolPolicy:
             low_cpu_mem_usage=True,
         ).to(self.device)
         self.model.eval()
-        self.tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "search",
-                    "description": "Search a deterministic local passage collection for evidence.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "A concise evidence-focused search query.",
-                            },
-                            "top_k": {
-                                "type": "integer",
-                                "description": "Number of results, from 1 to 5.",
-                            },
-                        },
-                        "required": ["query"],
-                    },
-                },
-            }
-        ]
+        self.tools = [SEARCH_TOOL_SCHEMA]
 
     def generate(self, messages: Sequence[Mapping[str, str]]) -> str:
         materialized = [dict(message) for message in messages]
