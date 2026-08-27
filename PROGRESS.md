@@ -6,7 +6,7 @@ M4 — Main Vanilla GRPO
 
 IN PROGRESS — the original canonical M4 run is complete and archived.
 The bounded Qwen3-8B strict Hotpot-MT vanilla GRPO sanity gate has passed;
-the full strict experiment is the next active run.
+the formal 2,000-example strict run is now active.
 
 # Completed
 
@@ -148,6 +148,11 @@ the full strict experiment is the next active run.
   executed searches remained 1.62 → 1.60. This is technical sanity evidence,
   not a full task-improvement claim. The saved FSDP checkpoint is under the
   corresponding ZFS run directory outside Git.
+- Formal strict Qwen3-8B vanilla GRPO is running as
+  `qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1` on A6000-1 physical GPUs
+  0, 1, 4, and 6. At the latest checkpoint it had completed 3/62 updates,
+  written `rollouts/1.jsonl` through `rollouts/3.jsonl`, and shown no fatal
+  runtime error. The earlier startup failure is retained separately.
 - Strict train/validation parquet artifacts are materialized and fingerprinted
   outside Git; their SHA-256 values are recorded above. No strict full-run or
   cost-reward result is being claimed yet.
@@ -172,8 +177,8 @@ the full strict experiment is the next active run.
 
 # Next Actions
 
-1. Launch the full strict Qwen3-8B vanilla GRPO run on the fixed 2,000/100
-   train/validation artifacts with the corrected native executed-search budget.
+1. Let the active strict Qwen3-8B vanilla GRPO run finish and preserve its
+   logs, rollouts, validation files, and checkpoint.
 2. Compare the final strict checkpoint with the fixed ReAct pilot using EM,
    F1, executed/useful/wasted searches, turns, tokens, and search-count
    distributions.

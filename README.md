@@ -15,7 +15,8 @@ GRPO learning-signal sanity gate. The canonical 2,000-example vanilla GRPO
 run is complete and archived. Strict Hotpot-MT pilots show genuine
 multi-search behavior with Qwen3-8B: 31.5% of episodes execute at least two
 searches, and exactly-two-search episodes reach 52.6% EM versus 9.5% after one
-search. The strict vanilla GRPO sanity gate is next; final claims remain
+search. The formal strict 2,000-example vanilla GRPO run is now in progress;
+final claims remain
 `TBD`.
 
 ## Architecture
@@ -30,13 +31,13 @@ HotpotQA passages → local BM25 search → multi-turn Agent loop
 
 The repository keeps tools, environment data, rewards, training, evaluation,
 and analysis separate. Gold answers are available only to offline reward and
-evaluation code, never to the search tool. The next experiment uses a
+evaluation code, never to the search tool. The active formal experiment uses a
 bridge-focused Hotpot-MT profile with one result per search and an explicit
 three-search execution budget. Its strict candidate filter makes the first
 question-level hop incomplete without exposing support metadata to the agent.
-The Qwen3-8B pilot already produces useful second-hop behavior, so the next
-step is vanilla GRPO under this fixed information structure; no search penalty
-is used yet.
+The Qwen3-8B pilot already produces useful second-hop behavior, so this run
+first measures vanilla GRPO under the fixed information structure; no search
+penalty is used yet.
 
 ## Quick start
 

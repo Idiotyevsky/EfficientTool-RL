@@ -304,3 +304,14 @@ least two searches, and 65.8% of second searches added new supporting
 evidence. The run passed the technical sanity gate. It does not establish a
 full task-improvement claim; the 2,000-example strict vanilla run remains
 required before any cost reward is introduced.
+
+## 2026-08-27 — Strict 2,000-example vanilla GRPO launch
+
+The formal Qwen3-8B strict vanilla run was launched from the corrected upstream
+verl configuration path on A6000-1 physical GPUs 0, 1, 4, and 6. The first
+launch attempt exited during Hydra composition because `VERL_CONFIG_PATH`
+pointed at the project config directory instead of the upstream trainer config
+directory; it produced no training output and is retained as startup-failure
+evidence. A unique retry directory was used rather than overwriting it.
+
+The active retry is
