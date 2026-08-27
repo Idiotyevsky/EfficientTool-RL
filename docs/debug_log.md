@@ -210,7 +210,7 @@ filtered parquet-preparation options provide the next `bridge`-focused,
 `top_k=1` pilot environment. The 52-test suite passes; no cost reward has
 been added yet.
 
-## 2026-08-27 — Canonical-loop formal retraining launched
+## 2026-08-27 — Canonical-loop formal retraining completed
 
 The corrected end-to-end M4 run was launched with the shared prompt/schema,
 the project-local `CanonicalToolAgentLoop`, Qwen3-1.7B, 2,000 training rows,
@@ -249,7 +249,7 @@ Qwen3-4B on the same fixed 200 examples reached EM/F1 0.145/0.2411, average
 executed searches 1.185, multi-search rate 15.0%, and second-search usefulness
 50.0%. The higher model size increases exploration, but both policies remain
 one-search dominated. The 1.7B/4B results are diagnostic evidence only; no
-strict GRPO training set or cost reward has been launched.
+strict GRPO run or cost reward has been launched.
 
 ## 2026-08-27 — Strict artifacts and Qwen3-8B pilot
 
@@ -266,3 +266,18 @@ Qwen3-8B on the fixed 200-example strict ReAct pilot reached EM/F1
 and second-search usefulness 0.6190. Exactly-two-search episodes reached
 EM 0.5263 versus 0.0949 after one search. This is sufficient evidence to
 enter a bounded vanilla GRPO sanity run; it is not a cost-aware result.
+
+## 2026-08-27 — Strict GRPO startup retries
+
+The first launch exited during Hydra composition because the remote
+`VERL_CONFIG_PATH` was misspelled. The second launch reached Ray but failed
+before training because its temporary directory made the Ray Unix socket
+longer than the 107-byte platform limit. Both failures were retained in
+separate ZFS run directories and produced no checkpoint.
+
+The third launch initially failed when vLLM reported no available KV-cache
+blocks at `gpu_memory_utilization=0.30`; the hybrid actor/rollout footprint
+was already about 14.7 GiB per card. The strict config was raised to `0.50`,
+and the retry used physical GPUs 0, 1, 3, and 4 because GPU2 and GPU7 were
+owned by unrelated services. vLLM then initialized successfully and entered
+validation/training without OOM.

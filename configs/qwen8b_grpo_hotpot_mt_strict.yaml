@@ -62,7 +62,7 @@ actor_rollout_ref:
     top_p: 0.95
     do_sample: true
     tensor_model_parallel_size: 1
-    gpu_memory_utilization: 0.30
+    gpu_memory_utilization: 0.50
     max_num_batched_tokens: 4096
     max_num_seqs: 32
     max_model_len: 4096
