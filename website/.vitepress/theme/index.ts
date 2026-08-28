@@ -2,6 +2,7 @@ import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import './custom.css'
 import './landing.css'
+import './homepage.css'
 
 import AgentLoopDemo from '../../components/AgentLoopDemo.vue'
 import BilingualLanding from '../../components/BilingualLanding.vue'
