@@ -4,9 +4,9 @@ M5 — Cost-Aware GRPO preparation
 
 # Status
 
-VANILLA BASELINE COMPLETE — the Qwen3-8B vanilla GRPO comparison and matched
-Natural Bridge-Hard evaluation are archived. Cost-aware reward design and
-evaluation are the next research stage; no cost-aware result is claimed yet.
+COST-AWARE OFFLINE DESIGN COMPLETE — the first counterfactual reward design
+has been evaluated on stored Natural Bridge-Hard trajectories. No cost-aware
+policy has been trained yet; the bounded smoke is the next stage.
 
 # Completed
 
@@ -44,11 +44,14 @@ evaluation are the next research stage; no cost-aware result is claimed yet.
   run: four updates, actor update, validation before/after, and checkpoint.
 - [x] Completed the Qwen3-8B vanilla GRPO baseline comparison on the fixed
   Natural Bridge-Hard secondary evaluation (200 examples); results recorded below.
+- [x] Completed M5.0 offline counterfactual reward analysis on 400 stored
+  Base/Step 62 Natural Bridge-Hard trajectories; output is reproducible and
+  does not modify the vanilla reward or training configuration.
 
 # In Progress
 
-- Cost-aware objective selection is the next task; reward semantics should
-  preserve useful multi-step exploration while targeting wasted calls.
+- M5.1 isolated cost-aware reward implementation is next; the selected
+  objective preserves useful searches while targeting wasted calls.
 - The completed vanilla baseline remains the comparison point for upcoming
   cost-aware runs.
 - Search statistics now distinguish attempted, valid, executed, useful, and
@@ -71,7 +74,7 @@ evaluation are the next research stage; no cost-aware result is claimed yet.
 
 # Latest Evidence
 
-- Deterministic/unit tests: 52/52 passed (two upstream warnings).
+- Deterministic/unit tests: 53/53 passed (two upstream warnings).
 - Held-out 60: EM 0.400, F1 0.506, completion 100%.
 - Average search calls: 1.000; average turns: 2.017.
 - Average supporting-title recall: 0.775.
@@ -174,9 +177,10 @@ evaluation are the next research stage; no cost-aware result is claimed yet.
   `89b6635152ea8f3038bdc9c7bac6708ceb718ec82b0a246fdc97ebab62a09ec2`;
   2,000-row parquet SHA-256
   `cb26c45e74c6fc80868c722ffecf9e3c92b8bed5effb38e2b65a876aa4b87b6f`.
-- M2 and M3 gates passed. The vanilla baseline comparison is complete on the
-  Natural Bridge-Hard secondary evaluation; cost-aware objective selection is
-  the next stage.
+- M5.0 offline design used lambdas 0, 0.025, 0.05, 0.10, 0.20, and 0.30;
+  no correct-versus-wrong ranking inversion appeared through 0.20, while
+  0.30 produced a small number of edge-case inversions. First smoke values
+  are 0.025, 0.05, and 0.10; details are in docs/m5_cost_reward_offline.md.
 
 # Known Risks
 
@@ -191,9 +195,9 @@ evaluation are the next research stage; no cost-aware result is claimed yet.
 
 1. Preserve the completed vanilla checkpoint, evaluation outputs, and the
    Natural Bridge-Hard artifact fingerprint.
-2. Use the baseline behavior to choose a cost-aware objective that preserves
-   useful multi-step exploration while reducing wasted calls.
-3. Implement the approved reward change in isolation, then run a bounded
-   smoke test before any lambda sweep.
+2. Implement the selected reward change in an isolated module and keep the
+   vanilla task-only reward unchanged.
+3. Run a bounded 8-by-4 smoke test, checking task reward, cost penalty,
+   advantage, gradient, optimizer update, and waste metadata.
 4. Compare task quality with executed, useful, wasted, turns, tokens, and
    search-count distributions; report negative results.

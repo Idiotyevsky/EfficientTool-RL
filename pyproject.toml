@@ -22,5 +22,5 @@ rl = ["hydra-core>=1.3", "ray>=2.30"]
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
