@@ -1,12 +1,12 @@
 # Current Milestone
 
-M4 — Main Vanilla GRPO
+M5 — Cost-Aware GRPO preparation
 
 # Status
 
-IN PROGRESS — the original canonical M4 run is complete and archived.
-The bounded Qwen3-8B strict Hotpot-MT vanilla GRPO sanity gate has passed;
-the formal 2,000-example strict run is now active.
+VANILLA BASELINE COMPLETE — the Qwen3-8B vanilla GRPO comparison and matched
+Natural Bridge-Hard evaluation are archived. Cost-aware reward design and
+evaluation are the next research stage; no cost-aware result is claimed yet.
 
 # Completed
 
@@ -42,11 +42,15 @@ the formal 2,000-example strict run is now active.
   base model and the existing 2k checkpoint.
 - [x] Completed the bounded Qwen3-8B strict Hotpot-MT vanilla GRPO sanity
   run: four updates, actor update, validation before/after, and checkpoint.
+- [x] Completed the Qwen3-8B vanilla GRPO baseline comparison on the fixed
+  Natural Bridge-Hard secondary evaluation (200 examples); results recorded below.
 
 # In Progress
 
-- The canonical-loop 2k vanilla GRPO experiment is complete: 62/62 updates,
-  final native validation EM/F1 0.390/0.5110, and final checkpoint saved.
+- Cost-aware objective selection is the next task; reward semantics should
+  preserve useful multi-step exploration while targeting wasted calls.
+- The completed vanilla baseline remains the comparison point for upcoming
+  cost-aware runs.
 - Search statistics now distinguish attempted, valid, executed, useful, and
   wasted calls; the historical canonical evaluator has been replayed under
   the new executed-call definition.
@@ -62,8 +66,8 @@ the formal 2,000-example strict run is now active.
 
 # Blockers
 
-- No infrastructure blocker. Original-environment M4 is complete; strict
-  Hotpot-MT vanilla GRPO remains the active research experiment.
+- No infrastructure blocker. The vanilla baseline is complete; cost-aware
+  objective selection and the corresponding sweep remain to be run.
 
 # Latest Evidence
 
@@ -152,23 +156,27 @@ the formal 2,000-example strict run is now active.
   Git: 200 bridge/hard validation rows without the strict answer-absence filter,
   using the same top-k=1, 384-token, three-executed-search limits. Its SHA-256
   is `1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`.
-- Formal strict Qwen3-8B vanilla GRPO is running as
-  `qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1` on A6000-1 physical GPUs
-  0, 1, 4, and 6. At the 15:33 checkpoint it had completed 7/62 updates,
-  written `rollouts/1.jsonl` through `rollouts/7.jsonl`, and shown no fatal
-  runtime error. The earlier startup failure is retained separately.
+- Natural Bridge-Hard vanilla GRPO, 200 examples, Base → Step 62:
+  EM 0.325 → 0.515; F1 0.4203 → 0.6253; completion 0.935 → 0.975.
+  Invalid action 0.1006 → 0.0017; executed search 1.335 → 1.960.
+  Multi-search 0.315 → 0.860; useful search 0.965 → 1.445.
+  Wasted search 0.370 → 0.515; tool efficiency 0.7228 → 0.7372.
+  This is a vanilla baseline result; cost-aware training has not started.
+- The completed Qwen3-8B vanilla GRPO checkpoint was evaluated on the fixed
+  Natural Bridge-Hard secondary set; the exact comparison is summarized below.
 - Strict train/validation parquet artifacts are materialized and fingerprinted
-  outside Git; their SHA-256 values are recorded above. No strict full-run or
-  cost-reward result is being claimed yet.
+  outside Git; their SHA-256 values remain recorded above. Cost-aware training
+  has not started.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
-  efficiency, not yet justification for launching cost shaping.
+  efficiency; the observed long tail informs cost-aware objective design.
 - Official train artifact: 90,447 normalized records, SHA-256
   `89b6635152ea8f3038bdc9c7bac6708ceb718ec82b0a246fdc97ebab62a09ec2`;
   2,000-row parquet SHA-256
   `cb26c45e74c6fc80868c722ffecf9e3c92b8bed5effb38e2b65a876aa4b87b6f`.
-- M2 gate: PASS; M3 technical learning-signal gate: PASS. M4 task-performance
-  gate remains open.
+- M2 and M3 gates passed. The vanilla baseline comparison is complete on the
+  Natural Bridge-Hard secondary evaluation; cost-aware objective selection is
+  the next stage.
 
 # Known Risks
 
@@ -181,12 +189,11 @@ the formal 2,000-example strict run is now active.
 
 # Next Actions
 
-1. Let the active strict Qwen3-8B vanilla GRPO run finish and preserve its
-   logs, rollouts, validation files, and checkpoint.
-2. Compare the final strict checkpoint with the fixed ReAct pilot using EM,
-   F1, executed/useful/wasted searches, turns, tokens, and search-count
-   distributions.
-3. Accept or reject the strict M4 gate from stored held-out evidence; do not
-   infer success from training reward alone.
-4. Only after strict vanilla GRPO is accepted, implement and sweep the
-   success-gated waste-aware cost reward.
+1. Preserve the completed vanilla checkpoint, evaluation outputs, and the
+   Natural Bridge-Hard artifact fingerprint.
+2. Use the baseline behavior to choose a cost-aware objective that preserves
+   useful multi-step exploration while reducing wasted calls.
+3. Implement the approved reward change in isolation, then run a bounded
+   smoke test before any lambda sweep.
+4. Compare task quality with executed, useful, wasted, turns, tokens, and
+   search-count distributions; report negative results.

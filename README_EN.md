@@ -120,7 +120,20 @@ You should see `Model Output → Parsed Action → Search Observation`. Next, [s
 | **Learn Track** | CPU-first examples, Qwen3-1.7B, trajectory inspection, and a real one-update smoke. |
 | **Research Track** | Qwen3-8B, Hotpot-MT Strict, Natural Bridge-Hard, verl/vLLM, and tool-cost analysis. |
 
-The Research Track is currently evaluating vanilla GRPO on Qwen3-8B. Cost-aware training will follow after the baseline evaluation is complete; results will be updated as experiments progress. See the [Research Track](https://idiotyevsky.github.io/EfficientTool-RL/research/).
+The Research Track has completed the Qwen3-8B vanilla GRPO baseline comparison. Natural Bridge-Hard shows stronger task quality and more multi-step retrieval; cost-aware Tool RL is next. See the [Research Track](https://idiotyevsky.github.io/EfficientTool-RL/research/).
+
+### Latest vanilla baseline
+
+Natural Bridge-Hard · 200 examples · Qwen3-8B Base → Step 62
+
+| Metric | Base | Step 62 |
+| --- | ---: | ---: |
+| EM | 32.5% | 51.5% |
+| F1 | 42.03% | 62.53% |
+| Multi-search | 31.5% | 86.0% |
+| Wasted search | 0.370 | 0.515 |
+
+Vanilla GRPO improved task quality and encouraged more multi-step retrieval; both useful and wasted searches increased. This is not a cost-aware result.
 
 ## Research question
 

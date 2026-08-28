@@ -61,7 +61,18 @@ const zh = {
   researchTrack: 'Research Track',
   researchTrackLead: '在更完整的环境中复现并分析 Agent 的任务能力与工具成本。',
   researchTrackItems: ['Qwen3-8B', 'Hotpot-MT Strict · Natural Bridge-Hard', 'vanilla GRPO → cost-aware Tool RL'],
-  researchStatus: 'vanilla GRPO 对照实验正在进行；cost-aware 结果将在基线评估完成后更新。',
+  researchStatus: 'vanilla GRPO 基线对照已完成；在 Natural Bridge-Hard 上，任务质量和多步检索均有明显提升。下一步是 cost-aware Tool RL。',
+  researchLatestKicker: 'LATEST BASELINE · NATURAL BRIDGE-HARD',
+  researchLatestTitle: 'Vanilla GRPO 让 Agent 更强，也更主动。',
+  researchLatestLead: 'Qwen3-8B · 200 examples · Base → Step 62',
+  researchLatestMetrics: [
+    ['EM', '32.5%', '51.5%'],
+    ['F1', '42.03%', '62.53%'],
+    ['Multi-search', '31.5%', '86.0%'],
+    ['Useful search', '0.965', '1.445'],
+    ['Wasted search', '0.370', '0.515'],
+  ],
+  researchLatestNote: '答案质量提升的同时，工具调用也增加了；下一步是保留有用探索、减少浪费调用。',
   learnLink: '进入 Learn Track',
   researchLink: '查看 Research Track',
   footer: '从 Tool Calling 开始，真正走完一次 Agent RL。',
@@ -120,7 +131,18 @@ const en = {
   researchTrack: 'Research Track',
   researchTrackLead: 'Reproduce and analyze task capability and tool cost in a more complete environment.',
   researchTrackItems: ['Qwen3-8B', 'Hotpot-MT Strict · Natural Bridge-Hard', 'vanilla GRPO → cost-aware Tool RL'],
-  researchStatus: 'The vanilla GRPO comparison is in progress; cost-aware results will follow the baseline evaluation.',
+  researchStatus: 'The vanilla GRPO baseline comparison is complete; Natural Bridge-Hard shows stronger task quality and more multi-step retrieval. Cost-aware Tool RL is next.',
+  researchLatestKicker: 'LATEST BASELINE · NATURAL BRIDGE-HARD',
+  researchLatestTitle: 'Vanilla GRPO makes the agent stronger — and more active.',
+  researchLatestLead: 'Qwen3-8B · 200 examples · Base → Step 62',
+  researchLatestMetrics: [
+    ['EM', '32.5%', '51.5%'],
+    ['F1', '42.03%', '62.53%'],
+    ['Multi-search', '31.5%', '86.0%'],
+    ['Useful search', '0.965', '1.445'],
+    ['Wasted search', '0.370', '0.515'],
+  ],
+  researchLatestNote: 'Better answers came with more tool use. The next step is to preserve useful exploration while reducing wasted calls.',
   learnLink: 'Enter Learn Track',
   researchLink: 'Explore Research Track',
   footer: 'Start with Tool Calling. Finish with a real Agentic RL update.',
@@ -286,6 +308,18 @@ PYTHONPATH=src python examples/01_tool_calling.py</code></pre>
           <p>{{ copy.researchTrackLead }}</p>
           <ul><li v-for="item in copy.researchTrackItems" :key="item">{{ item }}</li></ul>
           <p class="landing-status">{{ copy.researchStatus }}</p>
+          <div class="landing-research-result">
+            <span class="section-kicker">{{ copy.researchLatestKicker }}</span>
+            <h4>{{ copy.researchLatestTitle }}</h4>
+            <p class="landing-research-result__meta">{{ copy.researchLatestLead }}</p>
+            <dl>
+              <div v-for="metric in copy.researchLatestMetrics" :key="metric[0]">
+                <dt>{{ metric[0] }}</dt>
+                <dd><span>{{ metric[1] }}</span><b aria-hidden="true">→</b><strong>{{ metric[2] }}</strong></dd>
+              </div>
+            </dl>
+            <p>{{ copy.researchLatestNote }}</p>
+          </div>
           <a class="mini-text-link" :href="withBase('/research/')">{{ copy.researchLink }} →</a>
         </article>
       </div>

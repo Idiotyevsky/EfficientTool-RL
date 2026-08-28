@@ -120,7 +120,20 @@ PYTHONPATH=src python examples/01_tool_calling.py
 | **Learn Track** | CPU-first examples、Qwen3-1.7B、trajectory inspection 与真实 one-update smoke。 |
 | **Research Track** | Qwen3-8B、Hotpot-MT Strict、Natural Bridge-Hard、verl/vLLM 与工具成本分析。 |
 
-Research Track 正在评估 Qwen3-8B 上的 vanilla GRPO；cost-aware 训练将在基线评估完成后开展，结果会随实验进展更新。详见 [Research Track](https://idiotyevsky.github.io/EfficientTool-RL/research/)。
+Research Track 已完成 Qwen3-8B 的 vanilla GRPO baseline comparison。Natural Bridge-Hard 上任务质量与多步检索均明显提升；cost-aware Tool RL 是下一阶段。详见 [Research Track](https://idiotyevsky.github.io/EfficientTool-RL/research/)。
+
+### Latest vanilla baseline
+
+Natural Bridge-Hard · 200 examples · Qwen3-8B Base → Step 62
+
+| Metric | Base | Step 62 |
+| --- | ---: | ---: |
+| EM | 32.5% | 51.5% |
+| F1 | 42.03% | 62.53% |
+| Multi-search | 31.5% | 86.0% |
+| Wasted search | 0.370 | 0.515 |
+
+Vanilla GRPO improved task quality and encouraged more multi-step retrieval; both useful and wasted searches increased. This is not a cost-aware result.
 
 ## 研究问题
 

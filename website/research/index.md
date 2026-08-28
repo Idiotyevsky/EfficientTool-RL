@@ -11,7 +11,7 @@ Learn Track 解释系统如何工作；Research Track 回答一个可检验的�
   <MetricPill label="model" value="Qwen3-8B" tone="agent" />
   <MetricPill label="trainer" value="verl + vLLM" />
   <MetricPill label="environment" value="Strict Hotpot-MT" tone="tool" />
-  <MetricPill label="vanilla GRPO" value="IN PROGRESS" />
+  <MetricPill label="vanilla GRPO" value="COMPLETED" tone="positive" />
   <MetricPill label="cost-aware RL" value="PLANNED" tone="negative" />
 </div>
 
@@ -26,7 +26,25 @@ Learn Track 解释系统如何工作；Research Track 回答一个可检验的�
   { label: 'Natural Bridge-Hard', detail: 'secondary evaluation' }
 ]" />
 
-Qwen3-8B 的 vanilla GRPO 对照实验正在进行。完成基线评估后，再根据任务质量与工具行为决定 cost-aware objective；pilot 与 sanity check 会明确标注为阶段性证据。
+Qwen3-8B 的 vanilla GRPO baseline comparison 已完成。Natural Bridge-Hard 上的结果显示：任务质量提升的同时，Agent 也更频繁地进行多步检索。Cost-aware Tool RL 是下一阶段，尚未发布结果。
+
+## Latest vanilla baseline
+
+Natural Bridge-Hard · 200 examples · Qwen3-8B Base → Step 62
+
+| Metric | Base | Step 62 |
+| --- | ---: | ---: |
+| EM | 32.5% | 51.5% |
+| F1 | 42.03% | 62.53% |
+| Completion | 93.5% | 97.5% |
+| Invalid action | 10.06% | 0.17% |
+| Executed search | 1.335 | 1.960 |
+| Multi-search rate | 31.5% | 86.0% |
+| Useful search | 0.965 | 1.445 |
+| Wasted search | 0.370 | 0.515 |
+| Tool efficiency | 72.28% | 73.72% |
+
+这是 vanilla baseline 的任务与行为结果，不是 cost-aware 结果。虽然 useful-call 占比略有上升，但 wasted calls 的绝对数量也增加了；下一步问题是能否保留有效探索，同时减少不必要的调用。
 
 ## 两个评估集回答不同问题
 
@@ -45,7 +63,8 @@ Qwen3-8B 的 vanilla GRPO 对照实验正在进行。完成基线评估后，再
 | Held-out ReAct baseline · 60 examples | EM 0.400 · F1 0.506 · avg search 1.000 | Reference baseline |
 | Strict Qwen3-8B pilot · 200 examples | EM 0.215 · F1 0.3344 · P(search≥2) 31.5% | RL 前已存在 multi-search behavior |
 | Strict 8B four-update sanity | EM/F1 0.240/0.3635 → 0.320/0.4324 | Small-scale training check |
-| Qwen3-8B vanilla GRPO | In progress | Full baseline comparison |
+| Natural Bridge-Hard vanilla GRPO · 200 examples | EM 0.325 → 0.515 · F1 0.4203 → 0.6253 · multi-search 31.5% → 86.0% | Stronger task quality and more active multi-step retrieval |
+| Qwen3-8B vanilla GRPO | Completed | Baseline behavior comparison |
 | Cost-aware sweep | Planned | Starts after vanilla baseline evaluation |
 
 ## 审计入口

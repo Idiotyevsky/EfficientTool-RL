@@ -5,7 +5,27 @@ description: 区分 attempted、valid、executed、useful 与 wasted 工具调�
 
 # 08 · Efficient Tool Use
 
-“搜索越少越好”会奖励不搜索就猜。真正的问题是：Agent 能否保留必要的多跳检索，同时减少没有信息增益的执行成本？
+## GRPO 把 Agent 训强以后，发生了什么？
+
+在 Natural Bridge-Hard 的 200 条样本上，Qwen3-8B 的 vanilla GRPO checkpoint 将 EM 从 **32.5% 提升到 51.5%**，F1 从 **42.03% 提升到 62.53%**。
+
+与此同时，平均 executed search 从 **1.335 增加到 1.960**，multi-search rate 从 **31.5% 增加到 86.0%**。更多搜索确实带来了更多 useful evidence：
+
+$$
+0.965\rightarrow1.445
+$$
+
+但 wasted search 也从：
+
+$$
+0.370\rightarrow0.515
+$$
+
+这是一条 vanilla baseline 结果，不是 cost-aware 结果。它提出了一个更具体的问题：
+
+> **能不能保留 GRPO 学到的有效多步探索，同时减少不必要的工具调用？**
+
+因此，本章先把工具行为拆成可测量的几种 count，再讨论如何避免把 under-search 误判成效率提升。
 
 <div class="lesson-meta">
   <MetricPill label="runtime" value="CPU" />
