@@ -23,3 +23,8 @@ runs/
 *.log
 .cache/
 .huggingface/
+
+# Node / frontend build artifacts.
+node_modules/
+.vitepress/
+dist/
