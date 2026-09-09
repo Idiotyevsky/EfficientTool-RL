@@ -4,9 +4,11 @@ M5 — Cost-Aware GRPO preparation
 
 # Status
 
-COST-AWARE OFFLINE DESIGN COMPLETE — the first counterfactual reward design
-has been evaluated on stored Natural Bridge-Hard trajectories. No cost-aware
-policy has been trained yet; the bounded smoke is the next stage.
+BOUNDED COST-AWARE SANITY COMPLETE — the isolated success-gated reward has
+completed an 8×4 smoke and a four-update Qwen3-8B sanity run over 32 total
+training prompts (128 rollout trajectories overall).
+The training and metadata paths work; the sample is still too small to claim
+that cost-aware training improves tool efficiency.
 
 # Completed
 
@@ -47,11 +49,21 @@ policy has been trained yet; the bounded smoke is the next stage.
 - [x] Completed M5.0 offline counterfactual reward analysis on 400 stored
   Base/Step 62 Natural Bridge-Hard trajectories; output is reproducible and
   does not modify the vanilla reward or training configuration.
+- [x] Implemented the isolated success-gated cost-aware reward and native verl
+  adapter; the vanilla task-only reward remains unchanged.
+- [x] Completed an 8×4 Qwen3-8B cost-aware smoke on four A6000 GPUs with a
+  real rollout, non-zero advantage, actor update, and checkpoint.
+- [x] Completed a bounded four-update Qwen3-8B cost-aware sanity run with
+  rollout, validation, non-zero cost penalties, and a step-4 checkpoint;
+  it used 32 total training prompts × 4 rollouts (128 trajectories), not 32
+  prompts per optimizer step. No efficiency claim is made from this run.
 
 # In Progress
 
-- M5.1 isolated cost-aware reward implementation is next; the selected
-  objective preserves useful searches while targeting wasted calls.
+- M5.1 fixed-policy cost-signal validation is complete: a Step-62 Qwen3-8B
+  checkpoint produced 2,000 inference-only trajectories (500 groups) under
+  the strict Hotpot-MT protocol. The next step is bounded cost-aware GRPO
+  behavioral validation; no efficiency claim is made yet.
 - The completed vanilla baseline remains the comparison point for upcoming
   cost-aware runs.
 - Search statistics now distinguish attempted, valid, executed, useful, and
@@ -69,12 +81,12 @@ policy has been trained yet; the bounded smoke is the next stage.
 
 # Blockers
 
-- No infrastructure blocker. The vanilla baseline is complete; cost-aware
-  objective selection and the corresponding sweep remain to be run.
+- No infrastructure blocker. A larger behavioral sanity run is needed before
+  starting the lambda sweep or making a cost-efficiency claim.
 
 # Latest Evidence
 
-- Deterministic/unit tests: 53/53 passed (two upstream warnings).
+- Deterministic/unit tests: 68/68 passed (two upstream warnings).
 - Held-out 60: EM 0.400, F1 0.506, completion 100%.
 - Average search calls: 1.000; average turns: 2.017.
 - Average supporting-title recall: 0.775.
@@ -164,12 +176,13 @@ policy has been trained yet; the bounded smoke is the next stage.
   Invalid action 0.1006 → 0.0017; executed search 1.335 → 1.960.
   Multi-search 0.315 → 0.860; useful search 0.965 → 1.445.
   Wasted search 0.370 → 0.515; tool efficiency 0.7228 → 0.7372.
-  This is a vanilla baseline result; cost-aware training has not started.
+  This is a vanilla baseline result; cost-aware training is now in bounded sanity validation.
 - The completed Qwen3-8B vanilla GRPO checkpoint was evaluated on the fixed
   Natural Bridge-Hard secondary set; the exact comparison is summarized below.
 - Strict train/validation parquet artifacts are materialized and fingerprinted
-  outside Git; their SHA-256 values remain recorded above. Cost-aware training
-  has not started.
+  outside Git; their SHA-256 values remain recorded above. The cost-aware
+  implementation and bounded sanity artifacts are also outside Git; the step-4
+  checkpoint is in the corresponding M5 run directory.
 - Search-count analysis shows a long tail (rare episodes with 10–14 searches)
   and lower accuracy as search count increases; this is evidence for studying
   efficiency; the observed long tail informs cost-aware objective design.
@@ -181,23 +194,53 @@ policy has been trained yet; the bounded smoke is the next stage.
   no correct-versus-wrong ranking inversion appeared through 0.20, while
   0.30 produced a small number of edge-case inversions. First smoke values
   are 0.025, 0.05, and 0.10; details are in docs/m5_cost_reward_offline.md.
+- Cost-aware 8×4 smoke at λ=0.05 completed with 32 training rollouts,
+  metadata available for all rows, non-zero advantage, grad norm 3.5012, and
+  a real actor update. Its sampled wasted calls were not attached to positive
+  task reward, so the mean cost penalty was 0; this verified success gating,
+  not cost-sensitive behavior.
+- Cost-aware 32-prompt × 4-update sanity at λ=0.05 completed 128 rollouts.
+  Aggregate task reward/total reward was 0.3904/0.3898; executed/useful/wasted
+  searches were 1.6641/1.3359/0.3281; cost metadata was available for 128/128
+  rows; two rows received a non-zero penalty (maximum 0.05). Actor grad norms
+  were 3.5362, 6.2044, 2.7231, and 1.6461. The 8-example validation slice
+  changed EM/F1 from 0.250/0.3631 to 0.375/0.4688, while executed/useful/wasted
+  searches stayed 1.50/1.25/0.25 and validation cost penalty stayed 0. This
+  is bounded training evidence, not a final cost-aware result.
+
+- Cost-signal audit on the 62 stored vanilla rollout batches (7,936
+  trajectories and 1,984 groups) at λ=0.05: 1,008 rows (12.70%) had a
+  non-zero penalty; 396 groups (19.96%) were cost-active; 137 groups
+  (6.91%) changed normalized advantage; 327 equal-task pairs received a
+  lower-waste tie-break; no task-order ranking flips occurred.
+- The audit is cross-step stored-rollout evidence rather than a fixed-policy
+  rollout-only evaluation; it supports a larger behavioral sanity run but
+  does not establish a learned efficiency improvement.
+- Fixed-policy rollout-only audit on the strict 2,000-row train artifact at
+  lambda=0.05: EM/F1 were 0.6255/0.6939; completion was 98.4%; executed/useful/
+  wasted searches were 2.0185/1.6200/0.3985; multi-search rate was 92.25%
+  and 3+ search rate was 9.60%. Cost was non-zero for 207/2,000 rows
+  (10.35%), active in 68/500 groups (13.60%), and changed normalized
+  advantage in 14/500 groups (2.80%); no strict task-order ranking flips
+  occurred. Artifact and config are stored outside Git at
+  /home/zfs01/jiangjr/efficienttool-rl-audit-20260828/.
 
 # Known Risks
 
 - GPU availability is dynamic; recheck ownership and memory before every run.
 - The project environment's `verl` is editable from a clean OPD checkout;
   local runner hooks must remain isolated from that checkout.
-- Checkpoint writes are large (~20GB for actor plus optimizer) and belong on
-  durable storage outside the Git checkout.
+- Checkpoint writes are large (the four-GPU step-4 checkpoint was about 86 GiB)
+  and belong on durable storage outside the Git checkout.
 - Keep the source checkout separate from large model, data, and run artifacts.
 
 # Next Actions
 
-1. Preserve the completed vanilla checkpoint, evaluation outputs, and the
-   Natural Bridge-Hard artifact fingerprint.
-2. Implement the selected reward change in an isolated module and keep the
-   vanilla task-only reward unchanged.
-3. Run a bounded 8-by-4 smoke test, checking task reward, cost penalty,
-   advantage, gradient, optimizer update, and waste metadata.
-4. Compare task quality with executed, useful, wasted, turns, tokens, and
-   search-count distributions; report negative results.
+1. Preserve the vanilla and cost-aware checkpoints, rollout artifacts, and
+   validation outputs outside the Git checkout.
+2. Run a bounded cost-aware GRPO behavioral sanity experiment at lambda=0.05 and
+   compare it with the fixed-policy audit.
+3. Inspect whether the cost term changes group-relative signals without
+   causing under-search or task-quality collapse.
+4. Select a small lambda sweep only after the behavioral sanity run; report
+   negative or null cost-aware effects explicitly.

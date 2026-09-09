@@ -32,7 +32,8 @@ The first command is the smallest real-model Tool Calling lesson. The second run
 
 ## Training smoke
 
-The real one-update GRPO entry point is [scripts/train_grpo_smoke.py](../scripts/train_grpo_smoke.py). Follow [Chapter 07](../tutorials/07_grpo_smoke.md) for path checks, a dry-run command, expected evidence, and resource safety.
+The real one-update GRPO entry point is [scripts/train_grpo.py](../scripts/train_grpo.py) with the
+1.7B smoke config under `configs/grpo/`. Check `PROGRESS.md` for the last validated evidence.
 
 ## Important labels
 
