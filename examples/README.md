@@ -1,6 +1,6 @@
 # Runnable Examples
 
-The examples are thin adapters around the real modules under src/efficienttool_rl/. They are arranged to match the Learn Track.
+The examples are thin adapters around the real modules under src/efficienttool_rl/. They exercise the same modules used by training and evaluation.
 
 ## CPU-only examples
 

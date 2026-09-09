@@ -1,7 +1,7 @@
 # Hotpot-MT vanilla GRPO: bridge questions, one result per search, bounded budget.
 
 defaults:
-  - qwen1.7b_grpo
+  - qwen1.7b_hotpotqa_500
   - _self_
 
 data:
@@ -16,7 +16,7 @@ actor_rollout_ref:
       max_assistant_turns: 5
       max_user_turns: 5
       max_parallel_calls: 1
-      tool_config_path: ${oc.env:ETRL_ROOT}/configs/tool_config/hotpot_multi_turn.yaml
+      tool_config_path: ${oc.env:ETRL_ROOT}/configs/tool/hotpot_multi_turn.yaml
 
 trainer:
   total_training_steps: 62

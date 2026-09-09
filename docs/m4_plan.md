@@ -19,7 +19,7 @@ measurably change search behavior relative to the frozen ReAct baseline?
 Run with:
 
 ```bash
-python scripts/run_ppo_m3.py --config-name qwen1.7b_grpo
+python scripts/train_grpo.py --config-name qwen1.7b_hotpotqa_500
 ```
 
 The launcher must be run with the project environment, offline model/cache

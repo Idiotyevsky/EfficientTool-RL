@@ -51,5 +51,5 @@ then requires exactly one terminal `<answer>...</answer>` block. Stored reward
 diagnostics can be reproduced with:
 
 ```bash
-python scripts/analyze_verl_rollouts.py --rollouts /path/to/rollouts/1.jsonl
+python scripts/analyze_rollouts.py --rollouts /path/to/rollouts/1.jsonl
 ```

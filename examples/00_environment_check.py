@@ -1,4 +1,4 @@
-"""Check Learn Track prerequisites without loading a model."""
+"""Check pipeline prerequisites without loading a model."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ OPTIONAL_COMPONENTS = (
 
 
 def main() -> None:
-    print("MiniAgentRL Learn Track environment check")
+    print("EfficientTool-RL environment check")
     print(f"Python:     {sys.version.split()[0]}")
     print(f"Platform:   {platform.platform()}")
     print(f"Executable: {sys.executable}")
