@@ -1,186 +1,157 @@
-<p align="center">
-  <img src="./assets/logo.svg" alt="MiniAgentRL logo" width="88" />
-</p>
+# EfficientTool-RL
 
-<h1 align="center">MiniAgentRL</h1>
+**Multi-turn Tool Agent Reinforcement Learning with Qwen3, verl and vLLM.**
 
-<p align="center">
-  <strong>Learn Agentic RL by building it.</strong><br />
-  Start from a minimal tool-using agent, then build your way through multi-turn interaction, trajectories, rewards, and GRPO — all the way to a real parameter update.
-</p>
+Train a Qwen3-8B agent that calls a BM25 search tool across multiple turns,
+evaluate it under a fixed held-out protocol, and compare mature RL
+post-training recipes — **vanilla GRPO vs DAPO**, with a task-only or a
+process-aware composite reward.
 
-<p align="center">
-  <code>Qwen3</code> · <code>Tool Calling</code> · <code>Multi-turn</code> ·
-  <code>GRPO</code> · <code>verl</code> · <code>vLLM</code>
-</p>
+`Qwen3-8B` · `Multi-turn Tool Calling` · `GRPO / DAPO` · `verl` · `vLLM` · `FSDP`
 
-<p align="center">
-  <a href="README.md">中文</a> ·
-  <a href="README_EN.md">English</a>
-</p>
+[中文说明](README.md)
 
-<p align="center">
-  <a href="https://idiotyevsky.github.io/EfficientTool-RL/learn/00-start">Start Learning</a> ·
-  <a href="https://idiotyevsky.github.io/EfficientTool-RL/">Documentation</a> ·
-  <a href="https://idiotyevsky.github.io/EfficientTool-RL/playground/trajectories">Trajectory Explorer</a> ·
-  <a href="https://idiotyevsky.github.io/EfficientTool-RL/research/">Research</a>
-</p>
+---
 
-<p align="center">
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10 or newer" /></a>
-  <a href="https://huggingface.co/Qwen"><img src="https://img.shields.io/badge/Qwen3-model-5B5CE2?style=flat-square" alt="Qwen3 model family" /></a>
-  <a href="https://huggingface.co/docs/trl/main/en/grpo_trainer"><img src="https://img.shields.io/badge/GRPO-training-6F6FE8?style=flat-square" alt="GRPO training" /></a>
-  <a href="https://github.com/volcengine/verl"><img src="https://img.shields.io/badge/verl-agent%20RL-0D8CA8?style=flat-square" alt="verl Agent RL" /></a>
-  <a href="https://github.com/vllm-project/vllm"><img src="https://img.shields.io/badge/vLLM-rollouts-16845B?style=flat-square" alt="vLLM rollouts" /></a>
-</p>
+## Highlights
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/hero-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="./assets/hero-light.svg" />
-  <img src="./assets/hero-light.svg" alt="MiniAgentRL architecture: a Qwen agent calls search, receives observations, produces a reward, and updates with GRPO" width="1200" />
-</picture>
+- **Qwen3-8B agent policy** trained with verl's native multi-turn tool-agent
+  rollout (async vLLM server, per-trajectory tool instances).
+- **Deterministic BM25 search environment**: per-trajectory indexes over each
+  sample's HotpotQA distractor passages; gold answers and supporting titles
+  are evaluation-only metadata, never in prompts.
+- **GRPO baseline** and a **DAPO recipe** (dynamic sampling, token-level loss
+  aggregation, asymmetric clipping, soft overlong handling) on the same
+  pipeline — reusing verl's implementations, not reimplementations.
+- **Process-aware composite reward**: answer + saturating evidence-coverage +
+  format checks, validated offline before training.
+- **Unified held-out evaluation** across methods: EM / F1 / completion /
+  invalid-action / executed-useful-wasted searches / multi-search rate.
+- **Reproducible**: seeded configs, data fingerprints (SHA-256), per-step
+  rollout/validation dumps, resolved Hydra config saved with every run.
 
-<p align="center"><em>From a single tool call to a complete Agentic RL training loop.</em></p>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/course-roadmap.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="./assets/course-roadmap.svg" />
-  <img src="./assets/course-roadmap.svg" alt="Learning roadmap from environment setup and tool calling to real Qwen, multi-turn agents, GRPO, and efficient tool use" width="1200" />
-</picture>
-
-<p align="center"><em>A continuous path from Start to Efficient Tool Use.</em></p>
-
-## Why MiniAgentRL?
-
-Many Agent tutorials stop at Tool Calling: define a few tools, write a ReAct-style prompt, and let the model search, call APIs, or execute functions. The more interesting question is: **how is the agent actually trained?**
-
-MiniAgentRL breaks that full pipeline into understandable pieces:
+## Architecture
 
 ```text
-Tool Calling → Multi-turn Agent → Trajectory / Rollout
-             → Reward → GRPO → Updated Policy
+                ┌──────────────────────── multi-turn episode ───────────────────────┐
+                │                                                                   │
+question ──▶ Qwen3-8B policy ──▶ <tool_call>{search} ──▶ BM25 tool (per-trajectory index)
+   ▲              ▲                                              │
+   │              │                                    <tool_response> observation
+   │              │                                              │
+   │              └────────── observation re-enters context ──────┘
+   │                                     │
+   │                        terminal <answer> answer span
+   │                                     │
+GRPO / DAPO update ◀── 0.5·EM + 0.5·F1 (+ evidence & format for composite)
 ```
 
-The course starts with small, inspectable examples and gradually reconnects them into a real Agentic RL system. Begin with CPU lessons, let Qwen3-1.7B generate real Tool Calls, and finish with an actual GRPO parameter update through `verl + vLLM`.
+- **Agent loop**: verl `ToolAgentLoop` with a project-local canonical adapter
+  enforcing the same strict one-action protocol as the local evaluator,
+  terminating on invalid actions and enforcing the executed-search budget.
+- **Trainer**: verl `RayPPOTrainer` (GRPO) / `RayDAPOTrainer` (DAPO recipe),
+  FSDP full sharding + param/optimizer offload, colocated async vLLM rollout.
+- **Reward**: file-based custom reward functions loaded by verl
+  (`src/efficienttool_rl/verl/reward_adapters/`), weights via
+  `custom_reward_function.reward_kwargs`.
 
-## What will you build?
+## Results
 
-| Module | What you learn |
-| --- | --- |
-| **Tool Calling** | Understand the boundary between model text, structured actions, and tool execution. |
-| **Multi-turn Agent** | Feed observations back into context and change the next decision. |
-| **GRPO Training** | Connect grouped rollouts, rewards, and advantages to a parameter update. |
-| **Efficient Tool Use** | Separate necessary exploration from wasted calls instead of counting calls alone. |
+Qwen3-8B, Natural Bridge-Hard held-out set (200 examples), identical
+evaluation protocol for every method. Details:
+[experiments/baselines.md](experiments/baselines.md),
+[experiments/results.md](experiments/results.md).
 
-## Learning path
+| Method | Reward | EM | F1 | Completion | Invalid action | Executed searches | Multi-search |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Base | — | 32.5% | 42.03% | 93.5% | 10.06% | 1.335 | 31.5% |
+| Vanilla GRPO (step 62) | task-only | **51.5%** | **62.53%** | 97.5% | 0.17% | 1.960 | 86.0% |
+| GRPO + composite reward | 0.8/0.15/0.05 | TBD | TBD | TBD | TBD | TBD | TBD |
+| DAPO (task-only) | task-only | TBD | TBD | TBD | TBD | TBD | TBD |
 
-| Chapter | What you learn | Runtime |
-| --- | --- | --- |
-| **00 · Start** | Environment check and the Agentic RL map | CPU |
-| **01 · Tool Calling** | From generated text to actual tool execution | CPU |
-| **02 · Real Qwen** | Let Qwen3 generate a real Tool Call | GPU |
-| **03 · Multi-turn** | How observations become the next state | CPU |
-| **04 · ReAct + HotpotQA** | Run the agent on real multi-hop QA | GPU |
-| **05 · Rollout & Reward** | Turn complete trajectories into reward | CPU |
-| **06 · GRPO** | From reward to advantage and policy update | CPU |
-| **07 · Real Update** | Run an actual GRPO parameter update | GPU |
-| **08 · Efficient Tools** | Analyze useful and wasted tool calls | CPU |
+Vanilla task-only GRPO improves task quality and encourages more multi-step
+retrieval; both useful (0.965 → 1.445) and wasted (0.370 → 0.515) searches
+increase — this is **not** a cost-aware result.
 
-Start with [Chapter 00](https://idiotyevsky.github.io/EfficientTool-RL/learn/00-start), or jump to [Multi-turn](https://idiotyevsky.github.io/EfficientTool-RL/learn/03-multiturn) or [GRPO](https://idiotyevsky.github.io/EfficientTool-RL/learn/06-grpo) if you already know ReAct or Function Calling.
+Training-signal motivation for DAPO on this task: on the 2,000-prompt
+vanilla GRPO run, **68.4% of rollout groups had zero reward variance**.
 
-## See the agent's behavior
+## Training Algorithms
 
-<img src="./assets/trajectory-preview.svg" alt="Teaching trajectory: two searches gather evidence before a correct answer, with executed, useful, and wasted calls accounted for" width="1200" />
+| Component | Vanilla GRPO | DAPO |
+|---|---|---|
+| Advantage | GRPO, group-mean normalized | same |
+| Dynamic sampling | off | on — `filter_groups` drops zero-variance groups and regenerates (`max_num_gen_batches=10`) |
+| Loss aggregation | `token-mean` | `token-mean` (`seq-mean-token-mean` available by config) |
+| Clipping | symmetric 0.2 | asymmetric: low 0.2 / high 0.28 |
+| KL | `use_kl_loss=true`, coef 0.001 | off (`use_kl_loss=false`), per DAPO recipe |
+| Overlong handling | truncation at `max_response_length` | + soft overlong buffer (len 256, factor 1.0) via the DAPO reward manager; validation uses the pure task reward |
 
-A final answer hides most of what matters in an agent trajectory. MiniAgentRL separates `attempted → valid → executed → useful / wasted` so a necessary search is not treated as the same cost as a call that adds no new evidence.
-
-## How does reward become a parameter update?
-
-<img src="./assets/grpo-group.svg" alt="Conceptual GRPO view: four rollouts for one prompt become group-relative advantages and a policy update" width="1200" />
-
-One prompt produces multiple trajectories, and the model learns from their relative quality. The Learn Track includes a real one-update demonstration through the `verl + vLLM` pipeline: you can inspect reward, gradient, and optimizer-step evidence. A successful update proves that the training path works; it does not, by itself, prove benchmark improvement.
+Composite reward (optional for both): `R = 0.8·answer + 0.15·evidence +
+0.05·format` — document-level gold-evidence coverage of successful searches
+(saturating, duplicate-insensitive) plus three binary protocol checks.
+Offline validation: [analysis/composite_reward_pilot/README.md](analysis/composite_reward_pilot/README.md).
 
 ## Quick Start
-
-The fastest entry point requires no GPU and no model download:
 
 ```bash
 git clone https://github.com/Idiotyevsky/EfficientTool-RL.git
 cd EfficientTool-RL
-pip install -e ".[test]"
-PYTHONPATH=src python examples/01_tool_calling.py
+pip install -e ".[test,data,hf]"          # lightweight package + tests
+PYTHONPATH=src python examples/01_tool_calling.py   # CPU: parse → act → observe
+pytest -q                                  # 81 unit/integration tests
 ```
 
-You should see `Model Output → Parsed Action → Search Observation`. Next, [start the full course](https://idiotyevsky.github.io/EfficientTool-RL/learn/) or [let Qwen3 generate a real Tool Call](https://idiotyevsky.github.io/EfficientTool-RL/learn/02-real-qwen).
+The RL stack is hardware-dependent; install a matching verl/vLLM/CUDA pair.
+Validated with verl 0.7.0.dev0, vLLM 0.11.0, PyTorch 2.8.0+cu128,
+Transformers 4.57.1, Python 3.12.
 
-## Learn Track and Research Track
+## Training
 
-| Track | What it contains |
-| --- | --- |
-| **Learn Track** | CPU-first examples, Qwen3-1.7B, trajectory inspection, and a real one-update smoke. |
-| **Research Track** | Qwen3-8B, Hotpot-MT Strict, Natural Bridge-Hard, verl/vLLM, and tool-cost analysis. |
+```bash
+export ETRL_MODEL=/path/to/Qwen3-8B
+export ETRL_DATA_DIR=/path/to/efficienttool-rl-data
+export ETRL_RUN_DIR=/path/to/efficienttool-rl-runs
+export ETRL_ROOT=$PWD
+export VERL_CONFIG_PATH=/path/to/verl/verl/trainer/config
+export VLLM_USE_FLASHINFER_SAMPLER=0
 
-The Research Track has completed the Qwen3-8B vanilla GRPO baseline comparison. Natural Bridge-Hard shows stronger task quality and more multi-step retrieval; cost-aware Tool RL is next. See the [Research Track](https://idiotyevsky.github.io/EfficientTool-RL/research/).
-
-### Latest vanilla baseline
-
-Natural Bridge-Hard · 200 examples · Qwen3-8B Base → Step 62
-
-| Metric | Base | Step 62 |
-| --- | ---: | ---: |
-| EM | 32.5% | 51.5% |
-| F1 | 42.03% | 62.53% |
-| Multi-search | 31.5% | 86.0% |
-| Wasted search | 0.370 | 0.515 |
-
-Vanilla GRPO improved task quality and encouraged more multi-step retrieval; both useful and wasted searches increased. This is not a cost-aware result.
-
-## Research question
-
-Can reinforcement learning reduce tool calls that add no new information while preserving the capability of a multi-turn tool agent? If tool usage decreases while accuracy also drops, that is not a meaningful efficiency improvement.
-
-## Project Structure
-
-```text
-MiniAgentRL
-│
-├── README.md             # Chinese project entry
-├── README_EN.md          # English project entry
-├── src/efficienttool_rl/ # core Agent, protocol, tools, rewards, metrics
-├── examples/             # minimal runnable examples
-├── tutorials/            # 00→08 source tutorials
-├── website/              # VitePress learning website
-├── configs/              # reproducible Agent / GRPO configurations
-├── scripts/              # data, training, and evaluation entry points
-├── research/              # research design and experiment notes
-├── tests/                # unit and integration tests
-└── assets/               # README visual identity and technical diagrams
+python scripts/train_grpo.py --config-name qwen8b_hotpot_mt_strict            # vanilla GRPO
+python scripts/train_grpo.py --config-name qwen8b_hotpot_mt_strict_composite  # + composite reward
+python scripts/train_dapo.py --config-name qwen8b_hotpot_mt_strict            # DAPO
+python scripts/train_grpo.py --config-name qwen1.7b_smoke                     # bounded smoke
 ```
 
-## Tech Stack
+Every run stores the resolved config, per-step rollout dumps, validation
+dumps, and console metrics under `$ETRL_RUN_DIR/<experiment_name>/`.
 
-| Component | Role |
-| --- | --- |
-| **Qwen3** | Agent policy |
-| **Transformers** | Local model inference |
-| **BM25** | Reproducible search environment |
-| **HotpotQA** | Multi-hop QA tasks |
-| **verl** | GRPO training |
-| **vLLM** | Rollout generation |
-| **Ray** | Distributed execution |
-| **PyTorch / FSDP** | Model training |
-| **VitePress** | Learning website |
+## Evaluation
 
-## Who is this for?
+```bash
+python scripts/evaluate.py --data <heldout.parquet> --model <ckpt> \
+    --output results/base_nbh200 --backend vllm --tensor-parallel-size 2
 
-MiniAgentRL is designed for readers who know Python, understand basic Transformer / LLM concepts, have run Hugging Face inference, and have heard of ReAct, PPO, or GRPO.
+python scripts/analyze_rollouts.py --rollouts "$ETRL_RUN_DIR/<run>/rollouts" --output report.json
 
-It is not “learn reinforcement learning from zero in ten minutes,” and it is not another LangChain API demo. It is a practical path from LLM inference to Agentic RL and LLM post-training.
+python scripts/validate_composite_reward.py --trajectories rows.jsonl \
+    --examples "$ETRL_DATA_DIR/verl_hotpotqa_mt_strict_train_2000.parquet" --output-dir audit_out
+```
 
-## Credits
+## Repository Structure
 
-MiniAgentRL builds on [Qwen](https://huggingface.co/Qwen), [verl](https://github.com/volcengine/verl), [vLLM](https://github.com/vllm-project/vllm), Hugging Face Transformers, and HotpotQA. Please follow the licensing and citation requirements of the corresponding upstream projects and datasets.
+See the Chinese README for the annotated tree; the layout is identical:
+`configs/{grpo,dapo,tool}/`, `src/efficienttool_rl/{agent,rewards,evaluation,
+policies,training,verl,...}`, `scripts/`, `examples/`, `experiments/`,
+`tests/`, `analysis/`, `docs/`, `PROGRESS.md`.
+
+## Reproducibility
+
+Hydra-resolved configs saved per run; SHA-256 dataset fingerprints; pinned
+seeds; per-step rollout/validation dumps for offline metric recomputation;
+results tables only contain numbers backed by stored artifacts (`TBD` marks
+unrun comparisons).
 
 ## License
 
-A project-level license has not yet been specified. Until a `LICENSE` is added, please do not assume permission to redistribute, modify, or create derivative works from MiniAgentRL itself. Upstream dependencies and datasets remain subject to their respective licenses.
+No project-level license yet; upstream dependencies remain under their own
+licenses. Do not assume redistribution rights until a `LICENSE` file exists.
