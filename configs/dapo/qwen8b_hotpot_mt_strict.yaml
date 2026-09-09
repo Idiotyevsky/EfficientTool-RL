@@ -1,9 +1,15 @@
-# Qwen3-8B GRPO on Hotpot-MT strict with the process-aware composite reward.
+# Qwen3-8B DAPO on Hotpot-MT strict (task-only reward).
 #
-# Self-contained copy of qwen8b_hotpot_mt_strict.yaml: hydra only honors
-# hydra.searchpath from the primary config, so inherited configs cannot
-# provide it. Pilot weights: 0.8 answer / 0.15 evidence / 0.05 format — see
-# analysis/composite_reward_pilot/ for the offline distribution validation.
+# DAPO components (verl recipe/dapo):
+# - dynamic sampling: algorithm.filter_groups filters zero-reward-variance
+#   groups and keeps generating until the batch is filled (bounded by
+#   max_num_gen_batches).
+# - token-level loss aggregation: actor.loss_agg_mode=token-mean.
+# - asymmetric clipping: clip_ratio_low=0.2, clip_ratio_high=0.28.
+# - soft overlong punishment: reward_model.overlong_buffer (DAPO reward
+#   manager). Validation always uses the pure task reward.
+# Differences from the vanilla GRPO baseline: no KL loss (use_kl_loss=false),
+# which matches the DAPO recipe and removes the reference-policy constraint.
 
 hydra:
   searchpath:
@@ -45,9 +51,12 @@ actor_rollout_ref:
     ppo_mini_batch_size: 32
     ppo_micro_batch_size_per_gpu: 1
     ppo_max_token_len_per_gpu: 4096
-    use_kl_loss: true
-    kl_loss_coef: 0.001
-    kl_loss_type: low_var_kl
+    clip_ratio: 0.2
+    clip_ratio_low: 0.2
+    clip_ratio_high: 0.28
+    loss_agg_mode: token-mean
+    use_kl_loss: false
+    kl_loss_coef: 0.0
     entropy_coeff: 0
     use_torch_compile: false
     fsdp_config:
@@ -97,18 +106,23 @@ algorithm:
   adv_estimator: grpo
   use_kl_in_reward: false
   norm_adv_by_std_in_grpo: true
+  filter_groups:
+    enable: true
+    metric: score
+    max_num_gen_batches: 10
 
 reward_model:
   enable: false
-  reward_manager: naive
+  reward_manager: dapo
+  overlong_buffer:
+    enable: true
+    len: 256
+    penalty_factor: 1.0
+    log: true
 
 custom_reward_function:
-  path: ${oc.env:ETRL_ROOT}/src/efficienttool_rl/verl/reward_adapters/composite_reward.py
+  path: ${oc.env:ETRL_ROOT}/src/efficienttool_rl/verl/reward_adapters/task_reward.py
   name: compute_score
-  reward_kwargs:
-    answer_weight: 0.8
-    evidence_weight: 0.15
-    format_weight: 0.05
 
 trainer:
   total_training_steps: 62
@@ -121,11 +135,11 @@ trainer:
   max_actor_ckpt_to_keep: 1
   logger: [console]
   project_name: efficienttool_rl
-  experiment_name: qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42
+  experiment_name: qwen8b_dapo_hotpot_mt_strict_2000_seed42
   resume_mode: disable
-  default_local_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42
-  rollout_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42/rollouts
-  validation_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42/validation
+  default_local_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_dapo_hotpot_mt_strict_2000_seed42
+  rollout_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_dapo_hotpot_mt_strict_2000_seed42/rollouts
+  validation_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_dapo_hotpot_mt_strict_2000_seed42/validation
 
 ray_kwargs:
   ray_init:
