@@ -1,0 +1,21 @@
+# Qwen3-8B GRPO on Hotpot-MT strict with the process-aware composite reward.
+# Pilot weights: 0.8 answer / 0.15 evidence / 0.05 format. Check the stored
+# reward-distribution validation before changing these values.
+
+defaults:
+  - qwen8b_hotpot_mt_strict
+  - _self_
+
+custom_reward_function:
+  path: ${oc.env:ETRL_ROOT}/src/efficienttool_rl/verl/reward_adapters/composite_reward.py
+  name: compute_score
+  reward_kwargs:
+    answer_weight: 0.8
+    evidence_weight: 0.15
+    format_weight: 0.05
+
+trainer:
+  experiment_name: qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42
+  default_local_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42
+  rollout_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42/rollouts
+  validation_data_dir: ${oc.env:ETRL_RUN_DIR}/qwen8b_grpo_composite_hotpot_mt_strict_2000_seed42/validation

@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import json
-import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from .parsing import executed_search_payloads as _executed_search_payloads
 from .task import task_reward
-
-
-_TOOL_RESPONSE_BLOCK = re.compile(r"<tool_response>(.*?)</tool_response>", flags=re.DOTALL)
 
 
 def _as_mapping(extra_info: Any) -> Mapping[str, Any] | None:
@@ -38,26 +35,6 @@ def _supporting_titles(extra_info: Any) -> set[str]:
     if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
         return {item for item in value if isinstance(item, str)}
     return set()
-
-
-def _executed_search_payloads(solution_str: str) -> list[dict[str, Any]]:
-    """Return successful native search responses from a rollout string."""
-    payloads: list[dict[str, Any]] = []
-    if not isinstance(solution_str, str):
-        return payloads
-    for block in _TOOL_RESPONSE_BLOCK.findall(solution_str):
-        try:
-            payload = json.loads(block)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            continue
-        if not isinstance(payload, dict) or payload.get("ok") is not True:
-            continue
-        is_search = payload.get("tool") == "search" or (
-            "tool" not in payload and "query" in payload and "results" in payload
-        )
-        if is_search:
-            payloads.append(payload)
-    return payloads
 
 
 def search_usage(solution_str: str, extra_info: Any) -> dict[str, int]:

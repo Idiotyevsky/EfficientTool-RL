@@ -1,0 +1,93 @@
+{
+  "answer_dominance": {
+    "aggregate_answer_share_of_total": 0.6264678686990542,
+    "aggregate_evidence_share_of_total": 0.23837169714499148,
+    "evidence_reward_on_zero_em_rows": {
+      "max": 1.0,
+      "mean": 0.49044585987261147,
+      "min": 0.0,
+      "std": 0.19113587373405935
+    }
+  },
+  "components": {
+    "answer_reward": {
+      "max": 1.0,
+      "mean": 0.2747199864089399,
+      "min": 0.0,
+      "std": 0.3985611301915285
+    },
+    "evidence_coverage": {
+      "max": 1.0,
+      "mean": 0.5575,
+      "min": 0.0,
+      "std": 0.24071508054129054
+    },
+    "evidence_reward": {
+      "max": 1.0,
+      "mean": 0.5575,
+      "min": 0.0,
+      "std": 0.24071508054129054
+    },
+    "format_ended_with_answer": {
+      "max": 1.0,
+      "mean": 0.965,
+      "min": 0.0,
+      "std": 0.1837797594948911
+    },
+    "format_no_malformed_calls": {
+      "max": 1.0,
+      "mean": 0.915,
+      "min": 0.0,
+      "std": 0.27888169534768686
+    },
+    "format_reward": {
+      "max": 1.0,
+      "mean": 0.9483333333333333,
+      "min": 0.0,
+      "std": 0.18287062822297806
+    },
+    "format_valid_answer": {
+      "max": 1.0,
+      "mean": 0.965,
+      "min": 0.0,
+      "std": 0.1837797594948911
+    },
+    "score": {
+      "max": 1.0,
+      "mean": 0.3508176557938186,
+      "min": 0.05,
+      "std": 0.34177002633242953
+    }
+  },
+  "correlations": {
+    "evidence_coverage_vs_em": 0.5322772407443328,
+    "evidence_coverage_vs_total": 0.6247814732479114,
+    "searches_vs_em": 0.3451392303619602
+  },
+  "evidence_metadata_missing_rows": 0,
+  "rows": 200,
+  "search_behavior": {
+    "em_by_search_count": {
+      "1": 0.0948905109489051,
+      "2": 0.5263157894736842,
+      "3": 0.0
+    },
+    "executed_search_calls": {
+      "max": 3.0,
+      "mean": 1.345,
+      "min": 1.0,
+      "std": 0.5347663040992766
+    },
+    "wasted_search_calls": {
+      "max": 2.0,
+      "mean": 0.115,
+      "min": 0.0,
+      "std": 0.3630082643687331
+    }
+  },
+  "weights": {
+    "answer_weight": 0.8,
+    "evidence_weight": 0.15,
+    "format_weight": 0.05
+  }
+}

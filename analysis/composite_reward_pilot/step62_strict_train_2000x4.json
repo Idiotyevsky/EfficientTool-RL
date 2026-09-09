@@ -1,0 +1,93 @@
+{
+  "answer_dominance": {
+    "aggregate_answer_share_of_total": 0.7554273421769122,
+    "aggregate_evidence_share_of_total": 0.1739193947744535,
+    "evidence_reward_on_zero_em_rows": {
+      "max": 1.0,
+      "mean": 0.5914552736982643,
+      "min": 0.0,
+      "std": 0.3078529675050967
+    }
+  },
+  "components": {
+    "answer_reward": {
+      "max": 1.0,
+      "mean": 0.6596764423076923,
+      "min": 0.0,
+      "std": 0.4488158660626784
+    },
+    "evidence_coverage": {
+      "max": 1.0,
+      "mean": 0.81,
+      "min": 0.0,
+      "std": 0.28922309727959145
+    },
+    "evidence_reward": {
+      "max": 1.0,
+      "mean": 0.81,
+      "min": 0.0,
+      "std": 0.28922309727959145
+    },
+    "format_ended_with_answer": {
+      "max": 1.0,
+      "mean": 0.984,
+      "min": 0.0,
+      "std": 0.125475097130865
+    },
+    "format_no_malformed_calls": {
+      "max": 1.0,
+      "mean": 0.9935,
+      "min": 0.0,
+      "std": 0.08036012692872008
+    },
+    "format_reward": {
+      "max": 1.0,
+      "mean": 0.9871666666666667,
+      "min": 0.0,
+      "std": 0.09370032017021074
+    },
+    "format_valid_answer": {
+      "max": 1.0,
+      "mean": 0.984,
+      "min": 0.0,
+      "std": 0.125475097130865
+    },
+    "score": {
+      "max": 1.0,
+      "mean": 0.6985994871794872,
+      "min": 0.016666666666666666,
+      "std": 0.38947637339961777
+    }
+  },
+  "correlations": {
+    "evidence_coverage_vs_em": 0.584681849871919,
+    "evidence_coverage_vs_total": 0.7098521815216329,
+    "searches_vs_em": -0.00035625532980139137
+  },
+  "evidence_metadata_missing_rows": 0,
+  "rows": 2000,
+  "search_behavior": {
+    "em_by_search_count": {
+      "1": 0.2,
+      "2": 0.705384150030248,
+      "3": 0.28125
+    },
+    "executed_search_calls": {
+      "max": 3.0,
+      "mean": 2.0185,
+      "min": 1.0,
+      "std": 0.41612227770211974
+    },
+    "wasted_search_calls": {
+      "max": 2.0,
+      "mean": 0.234,
+      "min": 0.0,
+      "std": 0.5022389869374938
+    }
+  },
+  "weights": {
+    "answer_weight": 0.8,
+    "evidence_weight": 0.15,
+    "format_weight": 0.05
+  }
+}
