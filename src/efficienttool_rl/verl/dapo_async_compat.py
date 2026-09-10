@@ -40,9 +40,20 @@ def _patch_dataproto_pop_keep_raw_prompt() -> None:
 
     original_pop = DataProto.pop
 
-    # Keys that RayPPOTrainer._get_gen_batch keeps for the async agent loop:
-    # reward-model keys for scoring and raw_prompt for context building.
-    _AGENT_KEYS = ("data_source", "reward_model", "extra_info", "uid", "raw_prompt")
+    # Keys RayPPOTrainer._get_gen_batch keeps for the async agent loop:
+    # reward-model keys for scoring, raw_prompt for context building, and the
+    # dataset-promoted tool/interaction kwargs for per-trajectory tool setup.
+    _AGENT_KEYS = (
+        "data_source",
+        "reward_model",
+        "extra_info",
+        "uid",
+        "raw_prompt",
+        "tools_kwargs",
+        "interaction_kwargs",
+        "index",
+        "agent_name",
+    )
 
     def pop_keep_agent_keys(self, *, batch_keys, non_tensor_batch_keys):
         keys = list(non_tensor_batch_keys)
