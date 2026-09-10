@@ -4,6 +4,26 @@ All numbers below are reproduced from stored experiment artifacts; none are
 extrapolated. Artifacts live outside the Git checkout under
 `/home/zfs01/jiangjr/efficienttool-rl-{runs,data}` (recorded in `PROGRESS.md`).
 
+## Evaluation sets
+
+Two fixed HotpotQA-derived evaluation sets share identical runtime limits
+(top-k=1 retrieval, 384-token observations, three-executed-search budget,
+five assistant turns), so results are directly comparable:
+
+- **Hotpot-MT Strict (train 2000 / val 100)** — controlled stress test:
+  bridge-focused candidates, top-k=1, bounded observations, a
+  question-level information-availability filter. Useful for studying
+  behavior; the filter must be disclosed when reporting.
+- **Natural Bridge-Hard (200)**: official validation rows with
+  `type=bridge`, `level=hard`, no question-level filtering. The primary
+  held-out comparison set. Parquet artifact
+  `verl_hotpotqa_mt_natural_bridge_hard_val_200.parquet`, SHA-256
+  `1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`.
+
+Large models, normalized datasets, checkpoints, and run outputs live outside
+the Git checkout; every report records commit, seed, split, config, framework
+versions, and artifact fingerprints.
+
 ## Primary held-out evaluation: Natural Bridge-Hard (200 examples)
 
 Secondary HotpotQA evaluation: official validation rows with `type=bridge`,

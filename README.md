@@ -101,7 +101,7 @@ git clone https://github.com/Idiotyevsky/EfficientTool-RL.git
 cd EfficientTool-RL
 pip install -e ".[test,data,hf]"          # lightweight package + tests
 PYTHONPATH=src python examples/01_tool_calling.py   # CPU: parse → act → observe
-pytest -q                                  # 81 unit/integration tests
+pytest -q                                  # 85 unit/integration tests
 ```
 
 The RL stack is hardware-dependent; install a matching verl/vLLM/CUDA pair
