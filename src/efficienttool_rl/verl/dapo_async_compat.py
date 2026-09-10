@@ -87,6 +87,40 @@ def _install_instance_route(trainer) -> None:
     trainer._efficienttool_route_installed = True
 
 
+def _patch_dapo_true_reward_metric() -> None:
+    """Default true_reward_score before compute_data_metrics (DAPO fit gap).
+
+    The current metric_utils requires ``batch.batch['true_reward_score']``;
+    the main trainer's fit sets it to the reward tensor when the reward
+    function does not emit it. The recipe's fit loop lacks that block, so
+    add the same default around its compute_data_metrics reference.
+    """
+    import sys
+    from pathlib import Path
+
+    import verl
+
+    recipe_root = str(Path(verl.__file__).resolve().parent.parent)
+    if recipe_root not in sys.path:
+        sys.path.insert(0, recipe_root)
+    import recipe.dapo.dapo_ray_trainer as dapo_module
+
+    if getattr(dapo_module, "_efficienttool_true_reward_patched", False):
+        return
+
+    original_compute = dapo_module.compute_data_metrics
+
+    def compute_data_metrics_with_true_reward(batch, use_critic=True):
+        import torch
+
+        if "true_reward_score" not in batch.batch:
+            batch.batch["true_reward_score"] = batch.batch["token_level_scores"]
+        return original_compute(batch, use_critic=use_critic)
+
+    dapo_module.compute_data_metrics = compute_data_metrics_with_true_reward
+    dapo_module._efficienttool_true_reward_patched = True
+
+
 def patch_dapo_trainer_async_rollout() -> None:
     """Make RayDAPOTrainer.fit async-agent compatible (routing + raw_prompt)."""
     import sys
@@ -101,6 +135,8 @@ def patch_dapo_trainer_async_rollout() -> None:
 
     if getattr(RayDAPOTrainer, "_efficienttool_async_rollout_patched", False):
         return
+
+    _patch_dapo_true_reward_metric()
 
     original_fit = RayDAPOTrainer.fit
 
