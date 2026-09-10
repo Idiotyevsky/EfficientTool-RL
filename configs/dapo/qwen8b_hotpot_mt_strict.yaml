@@ -106,10 +106,6 @@ algorithm:
   adv_estimator: grpo
   use_kl_in_reward: false
   norm_adv_by_std_in_grpo: true
-algorithm:
-  adv_estimator: grpo
-  use_kl_in_reward: false
-  norm_adv_by_std_in_grpo: true
   filter_groups:
     enable: true
     metric: score
