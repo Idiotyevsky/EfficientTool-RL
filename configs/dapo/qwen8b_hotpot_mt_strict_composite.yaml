@@ -123,7 +123,10 @@ custom_reward_function:
 
 trainer:
   total_training_steps: 62
-  total_epochs: 1
+  # Dynamic group filtering may consume multiple raw prompt batches for one
+  # optimizer update. Allow a second data pass; total_training_steps remains
+  # the hard stop, so this cannot add updates beyond the declared budget.
+  total_epochs: 2
   n_gpus_per_node: 4
   nnodes: 1
   val_before_train: true

@@ -63,11 +63,20 @@ Qwen3-8B RL Agent (teacher, from the main line)
 # In Progress
 
 - [ ] DAPO (task-only): Qwen3-8B, 4 GPUs (3090-1, even cards), 62 steps,
-      screen session `etrl_dapo`, log
-      `/home/jiangjr/etrl/runs/dapo_4gpu_main/run_screen.log`.
-      Validation before training: reward 0.3164 (strict val-100 slice).
-      Step 1 completed with actor/entropy 0.259, no traceback, and dynamic
-      sampling recovering effective prompts across generation batches.
+      resumed from `global_step_45` in screen session
+      `etrl_dapo_resume45`; log:
+      `/home/jiangjr/etrl/runs/dapo_4gpu_main/run_resume45.log`.
+      All four FSDP ranks loaded model, Adam optimizer, RNG, and LR-scheduler
+      state from the checkpoint. The trainer set `global_steps=45`, completed
+      resume-time validation, and is generating the step-46 rollouts.
+
+- [x] Diagnosed the apparent "exit after checkpoint save": this was not a
+      checkpoint-writer crash. DAPO variance filtering consumed 2-3 raw
+      prompt batches for many optimizer updates; the one-epoch, 2,000-prompt
+      dataloader was exhausted after update 44. The recipe then followed its
+      normal post-loop path, saved `global_step_45`, and returned. Both DAPO
+      configs now allow two data passes while `total_training_steps=62`
+      remains the hard update cap.
 
 # Blockers
 
@@ -77,9 +86,14 @@ Qwen3-8B RL Agent (teacher, from the main line)
 # Latest Evidence
 
 - 85/85 unit/integration tests pass (pytest -q).
-- DAPO step-1 metrics printed (entropy 0.259, pg_clipfrac 0.0 at init),
-  zero-variance filtering active (`num_prompt_in_batch` log), no
-  `passages must be` environment errors after the tools_kwargs fix.
+- DAPO reached update 44 before data exhaustion and wrote a complete
+  `global_step_45` checkpoint: four model shards, four optimizer shards,
+  four extra-state shards, Hugging Face metadata, and dataloader state.
+- Resume evidence on 2026-09-10: `Load from checkpoint folder`,
+  `Setting global step to 45`, and per-rank model/optimizer/RNG/scheduler
+  load records are present; GPU 0/2/4/6 are active under the detached screen.
+- Dynamic sampling and invalid-action accounting remain active during the
+  resumed rollouts; malformed model actions are logged rather than crashing.
 - Composite-reward offline pilot: see analysis/composite_reward_pilot/.
 
 # Next Actions
