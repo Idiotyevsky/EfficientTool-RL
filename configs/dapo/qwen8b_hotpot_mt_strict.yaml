@@ -106,10 +106,17 @@ algorithm:
   adv_estimator: grpo
   use_kl_in_reward: false
   norm_adv_by_std_in_grpo: true
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+  norm_adv_by_std_in_grpo: true
   filter_groups:
     enable: true
     metric: score
-    max_num_gen_batches: 10
+    # Strict Hotpot-MT groups are 60-70% zero-variance, so filling a 32-prompt
+    # batch needs ~3x the nominal batches. 30 caps the worst-case cost while
+    # letting the sampler converge; the observed utilization is logged per step.
+    max_num_gen_batches: 30
 
 reward_model:
   enable: false
