@@ -21,6 +21,24 @@ async vLLM multi-turn BM25 tool environment) and one held-out protocol
 (Natural Bridge-Hard 200). Claim wording: compare *training recipes*
 end-to-end; no component-level attribution is claimed.
 
+# Extension (capped at ~20% of project effort): Agent Distillation
+
+```text
+Qwen3-8B RL Agent (teacher, from the main line)
+  -> On-Policy Distillation -> Qwen3-1.7B (student)
+```
+
+- Teacher token-level supervision on student on-policy rollouts
+  (`y ~ pi_student`, teacher provides `pi_teacher(.|s_t)`); no new reward
+  design, no new benchmark, same Hotpot-MT environment and held-out
+  evaluation (EM / F1 / completion / invalid action / multi-search).
+- Comparison target: 1.7B Base vs 1.7B + OPD vs 8B Teacher. A 1.7B GRPO
+  run is optional context (a 1.7B pilot and a 500/2000-prompt 1.7B GRPO
+  run already exist from earlier milestones).
+- Fallback: if 1.7B does not learn under OPD, switch the student to 4B
+  rather than tuning endlessly.
+- Gate: starts only after the main-line runs complete and are evaluated.
+
 # Completed
 
 - [x] Repository refactor: teaching site/tutorials removed; configs/
