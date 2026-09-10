@@ -27,6 +27,7 @@ from efficienttool_rl.verl.json_compat import (
     patch_ray_trainer_json_dump,
     patch_tool_agent_chat_template_defaults,
 )
+from efficienttool_rl.verl.dapo_async_compat import patch_dapo_trainer_async_rollout
 from verl.trainer.main_ppo import TaskRunner, run_ppo
 
 
@@ -61,6 +62,7 @@ class EfficientToolDAPOTaskRunner(TaskRunner):
     def run(self, config):
         patch_ray_trainer_json_dump()
         patch_tool_agent_chat_template_defaults()
+        patch_dapo_trainer_async_rollout()
 
         from pprint import pprint
 
