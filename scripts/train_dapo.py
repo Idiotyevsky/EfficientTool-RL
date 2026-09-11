@@ -22,13 +22,13 @@ from __future__ import annotations
 import hydra
 import ray
 from omegaconf import OmegaConf
+from verl.trainer.main_ppo import TaskRunner, run_ppo
 
+from efficienttool_rl.verl.dapo_async_compat import patch_dapo_trainer_async_rollout
 from efficienttool_rl.verl.json_compat import (
     patch_ray_trainer_json_dump,
     patch_tool_agent_chat_template_defaults,
 )
-from efficienttool_rl.verl.dapo_async_compat import patch_dapo_trainer_async_rollout
-from verl.trainer.main_ppo import TaskRunner, run_ppo
 
 
 def _load_dapo_trainer_cls():
@@ -47,13 +47,22 @@ def _load_dapo_trainer_cls():
 
 
 def _load_reward_manager(config, tokenizer, num_examine: int, *, with_overlong: bool):
+    # Import registers the project-local multi-turn-aware DAPO manager before
+    # verl resolves ``reward_model.reward_manager`` from its registry.
     from verl.trainer.ppo.reward import load_reward_manager
+
+    import efficienttool_rl.verl.reward_managers  # noqa: F401
+
+    manager_config = OmegaConf.create(OmegaConf.to_container(config, resolve=True))
+    manager_config.reward_model.reward_manager = "efficienttool_dapo"
 
     reward_kwargs = {}
     if with_overlong and config.reward_model.overlong_buffer.enable:
         reward_kwargs["max_resp_len"] = config.data.max_response_length
         reward_kwargs["overlong_buffer_cfg"] = config.reward_model.overlong_buffer
-    return load_reward_manager(config, tokenizer, num_examine, **reward_kwargs)
+    return load_reward_manager(
+        manager_config, tokenizer, num_examine, **reward_kwargs
+    )
 
 
 class EfficientToolDAPOTaskRunner(TaskRunner):
@@ -67,11 +76,11 @@ class EfficientToolDAPOTaskRunner(TaskRunner):
         from pprint import pprint
 
         from verl.trainer.main_ppo import create_rl_dataset, create_rl_sampler
+        from verl.trainer.ppo.utils import need_critic, need_reference_policy
         from verl.utils import hf_processor, hf_tokenizer
         from verl.utils.config import validate_config
         from verl.utils.dataset.rl_dataset import collate_fn
         from verl.utils.fs import copy_to_local
-        from verl.trainer.ppo.utils import need_critic, need_reference_policy
 
         pprint(OmegaConf.to_container(config, resolve=True))
         OmegaConf.resolve(config)

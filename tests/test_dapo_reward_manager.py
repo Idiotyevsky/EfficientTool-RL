@@ -1,4 +1,4 @@
-"""Unit tests for the DAPO reward-manager wiring (verl DAPORewardManager).
+"""Unit tests for the project-local DAPO reward-manager wiring.
 
 These tests exercise the exact reward path used by ``scripts/train_dapo.py``:
 verl's DAPO reward manager calling the project custom reward function, plus
@@ -14,9 +14,11 @@ import numpy as np
 import pytest
 
 pytest.importorskip("verl")
-import torch  # noqa: E402
-from verl import DataProto  # noqa: E402
-from verl.workers.reward_manager import get_reward_manager_cls  # noqa: E402
+import torch
+from verl import DataProto
+from verl.workers.reward_manager import get_reward_manager_cls
+
+import efficienttool_rl.verl.reward_managers  # noqa: F401
 
 _ADAPTER_PATH = (
     Path(__file__).resolve().parent.parent
@@ -48,7 +50,7 @@ def _overlong_cfg(enable: bool) -> SimpleNamespace:
 
 
 def _manager(tokenizer, enable: bool):
-    cls = get_reward_manager_cls("dapo")
+    cls = get_reward_manager_cls("efficienttool_dapo")
     return cls(
         tokenizer,
         num_examine=0,
@@ -66,6 +68,7 @@ def _batch(response_text: str, tokenizer) -> DataProto:
             "prompts": torch.tensor([prompt_ids]),
             "responses": torch.tensor([response_ids]),
             "attention_mask": torch.tensor([[1] * (len(prompt_ids) + len(response_ids))]),
+            "response_mask": torch.tensor([[1] * len(response_ids)]),
             "data_source": np.array(["hotpotqa_distractor"], dtype=object),
             "reward_model": np.array(
                 [{"style": "rule", "ground_truth": "Paris"}], dtype=object

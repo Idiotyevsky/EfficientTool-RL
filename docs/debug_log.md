@@ -375,3 +375,41 @@ that the real verl path reached an optimizer update.
 Post-update validation had valid-answer rate 0.25 but EM/F1 0/0. This is not a
 task-improvement claim; it is the minimal real learning-signal checkpoint used
 to teach learners to inspect both optimization and task metrics.
+
+## 2026-09-11 — DAPO overlong reward counted tool observations
+
+The upstream DAPO reward manager measured response length with the post-prompt
+`attention_mask`. In async multi-turn rollouts this mask includes both
+assistant-generated tokens and injected tool-observation tokens, so a useful
+second or third search could consume the overlong budget even though the model
+did not generate those observation tokens.
+
+The actual async path exposed a second issue: AgentLoop precomputes task reward
+into `rm_scores`, and the stock DAPO manager returns that tensor immediately.
+Consequently, the previous Fresh DAPO run did not provide valid evidence for an
+enabled overlong-reward ablation; its task metrics remain usable as a recipe run
+without effective overlong shaping, but it must not be labeled as the intended
+DAPO-overlong result.
+
+The fix is isolated in the project-local
+`AssistantLengthDAPORewardManager`. It preserves the precomputed task score,
+uses `response_mask` to count only assistant-generated tokens, applies the
+existing buffer and penalty factor, and relocates the scalar reward to the last
+assistant token. It logs assistant length, total post-prompt trajectory length,
+overlong penalty, and search count. No third-party verl file or policy-loss mask
+was changed.
+
+Validation: focused reward-manager tests passed 8/8; the full suite passed
+91/91. A Hydra-composed Fresh DAPO config resolved to the local manager with
+`overlong_buffer.enable=true`, buffer length 256, and penalty factor 1.0.
+
+
+The corrected 4090 rerun initially failed in actor log-prob computation because
+the installed FlashAttention 2.8.1 binary had no valid SM89 kernel. A direct
+micro-test reproduced the same device-kernel-image error, while PyTorch SDPA
+passed. The rerun therefore uses the equivalent SDPA attention backend with
+remove-padding disabled; reward, rollout, DAPO loss, clipping, dynamic
+sampling, batch size, and seed are unchanged. Step 1 completed end to end.
+Its 128 stored trajectories report mean assistant length 464.04, total
+trajectory length 672.45, overlong penalty -0.1248, and search count 1.219;
+45 trajectories received a nonzero overlong penalty.

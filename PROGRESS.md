@@ -4,15 +4,15 @@ Recipe comparison — Qwen3-8B Multi-turn Tool Agent RL
 
 # Status
 
-IN PROGRESS — infrastructure complete; two headline runs queued/running.
+IN PROGRESS — composite GRPO and corrected assistant-only DAPO are running.
 
 # Main Line
 
 ```text
 Qwen3-8B Base
   -> vanilla GRPO (task-only reward)        [DONE - see experiments/baselines.md]
-  -> GRPO + composite reward                [QUEUED - auto-starts after DAPO]
-  -> DAPO (task-only reward)                [RUNNING - 3090-1, 4 GPUs, 62 steps]
+  -> GRPO + composite reward                [RUNNING - 3090-1, 4 GPUs, 62 steps]
+  -> DAPO (task + assistant-only overlong) [RUNNING - 4090-1, 4 GPUs, 62 steps]
   -> DAPO + composite reward                [optional, later]
 ```
 
@@ -57,18 +57,22 @@ Qwen3-8B RL Agent (teacher, from the main line)
       multi-turn compatibility fixes (agent-loop keys in gen batches,
       manager-routed rollouts, true_reward_score default) plus a
       dynamic-sampling cap sized to this task's 60-70% zero-variance rate.
+- [x] Fresh DAPO completed and was evaluated on Natural Bridge-Hard 200
+      (EM 33.0%, F1 41.83%), but async `rm_scores` bypassed overlong shaping.
+      Treat it as a DAPO recipe run without effective overlong reward.
+- [x] Project-local assistant-only DAPO manager implemented and validated:
+      91/91 tests pass; no third-party verl or policy-loss code changed.
 - [x] Historical cost-aware experiments and pre-refactor progress archived
       under docs/archive/.
 
 # In Progress
 
-- [ ] DAPO (task-only): Qwen3-8B, 4 GPUs (3090-1, even cards), 62 steps,
-      resumed from `global_step_45` in screen session
-      `etrl_dapo_resume45`; log:
-      `/home/jiangjr/etrl/runs/dapo_4gpu_main/run_resume45.log`.
-      All four FSDP ranks loaded model, Adam optimizer, RNG, and LR-scheduler
-      state from the checkpoint. The trainer set `global_steps=45`, completed
-      resume-time validation, and is generating the step-46 rollouts.
+- [ ] GRPO + composite reward: Qwen3-8B, 4 GPUs, 62 steps in detached
+      session `etrl_grpo_composite62`. Do not interrupt this run for the DAPO fix.
+- [ ] Corrected Fresh DAPO: Qwen3-8B, 4 GPUs, 62 steps in detached
+      session etrl_dapo_asstlen62_r7. Step 1 completed end to end. The
+      4090 host uses PyTorch SDPA because its installed FlashAttention binary
+      does not contain a valid SM89 kernel; research hyperparameters are unchanged.
 
 - [x] Diagnosed the apparent "exit after checkpoint save": this was not a
       checkpoint-writer crash. DAPO variance filtering consumed 2-3 raw
@@ -85,7 +89,12 @@ Qwen3-8B RL Agent (teacher, from the main line)
 
 # Latest Evidence
 
-- 85/85 unit/integration tests pass (pytest -q).
+- 91/91 unit/integration tests pass (pytest -q).
+- Corrected Fresh DAPO step 1 completed on 128 trajectories: mean assistant
+  length 464.04 versus total trajectory length 672.45, mean overlong penalty
+  -0.1248, 45/128 nonzero penalties, and mean search count 1.219. Tool
+  observations contributed a mean 208.41 tokens but were excluded from the
+  overlong length.
 - DAPO reached update 44 before data exhaustion and wrote a complete
   `global_step_45` checkpoint: four model shards, four optimizer shards,
   four extra-state shards, Hugging Face metadata, and dataloader state.
@@ -98,11 +107,13 @@ Qwen3-8B RL Agent (teacher, from the main line)
 
 # Next Actions
 
-1. DAPO run completes -> run unified held-out evaluation (Natural
-   Bridge-Hard 200) via scripts/evaluate.py; fill experiments/results.md.
-2. Auto-chain: GRPO + composite reward (`qwen8b_hotpot_mt_strict_composite`)
-   starts when the DAPO run exits; same protocol and GPUs.
-3. Keep narrative discipline: DAPO vs GRPO claims are recipe-level;
+1. Let the active GRPO + composite reward run finish and evaluate it on
+   Natural Bridge-Hard 200.
+2. Let the corrected Fresh DAPO run finish, then evaluate its final checkpoint
+   on Natural Bridge-Hard 200. Step-1 artifacts already verify assistant-only
+   length accounting and overlong-penalty logging.
+3. Keep narrative discipline: the earlier Fresh DAPO result did not exercise
+   effective overlong shaping; DAPO vs GRPO claims remain recipe-level;
    unrun rows stay TBD; no fabricated numbers.
 
 # Known Risks
