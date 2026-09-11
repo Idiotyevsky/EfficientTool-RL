@@ -21,7 +21,7 @@ OPTIONAL_COMPONENTS = (
 
 
 def main() -> None:
-    print("EfficientTool-RL environment check")
+    print("ToolAgentLab environment check")
     print(f"Python:     {sys.version.split()[0]}")
     print(f"Platform:   {platform.platform()}")
     print(f"Executable: {sys.executable}")

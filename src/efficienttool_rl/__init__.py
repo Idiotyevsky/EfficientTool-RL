@@ -1,4 +1,4 @@
-"""Core components for EfficientTool-RL."""
+"""Core components for ToolAgentLab."""
 
 from .agent import AgentConfig, AgentRunner, EpisodeResult, JsonlTrajectoryWriter
 from .protocol import FinalAnswer, InvalidAction, ToolCall, parse_action

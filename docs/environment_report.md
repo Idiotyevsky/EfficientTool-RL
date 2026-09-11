@@ -1,14 +1,8 @@
-# M0 Environment Report
+# ToolAgentLab Reference Environment
 
-**Recorded:** 2026-08-26 (Asia/Shanghai)
-**Milestone:** M0 — Environment Reconnaissance
-**Sol gate decision:** PASS
-
-## Reference Environment
-
-The project was validated on a Linux CUDA server with an NVIDIA RTX A6000
-class GPU and sufficient host memory for a 1.7B model plus vLLM rollout. GPU
-selection is workload-dependent; always inspect ownership before a long run.
+This report records the validated software stack for local inference and the
+verl/vLLM training path. Exact compatibility depends on GPU architecture; use a
+matched CUDA, PyTorch, vLLM, and FlashAttention combination.
 
 | Component | Validated version |
 |---|---:|
@@ -20,39 +14,36 @@ selection is workload-dependent; always inspect ownership before a long run.
 | FlashAttention | 2.8.1 |
 | datasets | 5.0.1 |
 
-SGLang was not installed during M0; vLLM is the initial rollout engine. The
-verl integration was tested against upstream commit
-`4532fd35ccfdde82adc918b265e4c964534e83d1`. Use a compatible verl/vLLM/CUDA
-combination rather than assuming these exact versions work on every GPU.
+The validated verl checkout used upstream commit
+`4532fd35ccfdde82adc918b265e4c964534e83d1`. SGLang is not required by the
+current pipeline.
 
 ## Model and Data
 
-The smoke test used Qwen3-1.7B loaded from a local Hugging Face-format
-checkpoint. The normalized HotpotQA distractor data and derived parquet files
-are intentionally kept outside Git because they are large generated inputs.
-Their SHA-256 fingerprints are recorded in the milestone and run reports.
+- Qwen3-1.7B is used for inference and bounded training smoke tests.
+- Qwen3-8B is used for the reported GRPO/DAPO experiments.
+- Normalized HotpotQA and derived parquet files stay outside Git because they
+  are generated data.
+- Checkpoints and rollout artifacts also stay outside Git; reports record
+  stable names and fingerprints.
 
 ## Reproduction
 
 ```bash
-export PROJECT_ROOT=/path/to/EfficientTool-RL
-export MODEL_PATH=/path/to/Qwen3-1.7B
-export DATA_DIR=/path/to/efficienttool-rl-data
-export RUN_DIR=/path/to/efficienttool-rl-runs
+export ETRL_ROOT=/path/to/toolagentlab
+export ETRL_MODEL=/path/to/Qwen3-1.7B
+export ETRL_DATA_DIR=/path/to/prepared/parquet
+export ETRL_RUN_DIR=/path/to/run-output
 export VERL_CONFIG_PATH=/path/to/verl/verl/trainer/config
 
-cd "$PROJECT_ROOT"
-python -m pytest -q
+cd "$ETRL_ROOT"
+pytest -q
 python scripts/smoke_qwen_inference.py \
-  --model "$MODEL_PATH" --device cuda:0 --max-new-tokens 32 --seed 42
+  --model "$ETRL_MODEL" --device cuda:0 --max-new-tokens 32 --seed 42
 ```
 
-For vLLM runs, set `VLLM_USE_FLASHINFER_SAMPLER=0` when the installed CUDA
-toolkit cannot compile FlashInfer. Use a persistent shell such as `screen` or
-the host scheduler for long jobs, and write logs/checkpoints under `RUN_DIR`.
-
-## M0 Gate Evidence
-
-Qwen inference completed with the expected smoke output, core Torch/
-Transformers/vLLM/verl imports passed, and no shared process was terminated or
-modified. M0 is accepted; the next gate is the minimal multi-turn Agent loop.
+For long runs, use a persistent session or scheduler and inspect GPU process
+ownership, free memory, disk capacity, and the target output directory before
+launch. On GPUs whose installed FlashAttention build lacks a matching kernel,
+use a verified PyTorch SDPA override rather than changing research
+hyperparameters.

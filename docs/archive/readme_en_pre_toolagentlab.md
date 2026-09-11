@@ -9,7 +9,7 @@ process-aware composite reward.
 
 `Qwen3-8B` · `Multi-turn Tool Calling` · `GRPO / DAPO` · `verl` · `vLLM` · `FSDP`
 
-[中文说明](README.md)
+[中文说明](../../README.md)
 
 ---
 
@@ -59,8 +59,8 @@ GRPO / DAPO update ◀── 0.5·EM + 0.5·F1 (+ evidence & format for composit
 
 Qwen3-8B, Natural Bridge-Hard held-out set (200 examples), identical
 evaluation protocol for every method. Details:
-[experiments/baselines.md](experiments/baselines.md),
-[experiments/results.md](experiments/results.md).
+[experiments/baselines.md](../../experiments/baselines.md),
+[experiments/results.md](../../experiments/results.md).
 
 | Method | Reward | EM | F1 | Completion | Invalid action | Executed searches | Multi-search |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -90,7 +90,7 @@ vanilla GRPO run, **68.4% of rollout groups had zero reward variance**.
 Composite reward (optional for both): `R = 0.8·answer + 0.15·evidence +
 0.05·format` — document-level gold-evidence coverage of successful searches
 (saturating, duplicate-insensitive) plus three binary protocol checks.
-Offline validation: [analysis/composite_reward_pilot/README.md](analysis/composite_reward_pilot/README.md).
+Offline validation: [analysis/composite_reward_pilot/README.md](../../analysis/composite_reward_pilot/README.md).
 
 ## Quick Start
 
