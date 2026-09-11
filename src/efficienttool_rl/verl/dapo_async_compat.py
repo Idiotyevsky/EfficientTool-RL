@@ -43,6 +43,9 @@ def _patch_dataproto_pop_keep_raw_prompt() -> None:
     # Keys RayPPOTrainer._get_gen_batch keeps for the async agent loop:
     # reward-model keys for scoring, raw_prompt for context building, and the
     # dataset-promoted tool/interaction kwargs for per-trajectory tool setup.
+    # "index" is also the val metric-grouping key (data_source is per-row; the
+    # "unknown" label in val-core means data_source was missing from the batch
+    # the reward worker saw, so keep it in every popped gen batch).
     _AGENT_KEYS = (
         "data_source",
         "reward_model",
