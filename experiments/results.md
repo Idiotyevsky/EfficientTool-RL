@@ -11,13 +11,19 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 | Qwen3-8B Base | — | 32.5% | 42.03% | 93.5% | 10.06% | 1.335 | 31.5% | 0.965 | 0.370 |
 | Vanilla GRPO, step 62 | task-only | 51.5% | 62.53% | 97.5% | 0.17% | 1.960 | 86.0% | 1.445 | 0.515 |
 | Fresh DAPO, step 62 | task-only | 33.0% | 41.83% | 100% | 0% | 1.100 | 10.0% | 0.880 | 0.220 |
-| GRPO + composite reward | 0.8 / 0.15 / 0.05 | in progress | in progress | in progress | in progress | in progress | in progress | in progress | in progress |
+| GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05 | 45.0% | 55.25% | 98.0% | 0.52% | 1.885 | 77.5% | 1.250 | 0.635 |
 | Corrected assistant-only DAPO | task + overlong | in progress | in progress | in progress | in progress | in progress | in progress | in progress | in progress |
 
 Fresh DAPO was re-aggregated from 200 rows in the stored artifact family
 dapo_fresh62_nbh200/shard_{0,1,2}. Its average task reward is 0.3742,
 average turns 2.10, and useful/executed ratio 80.0%. Its lower absolute tool cost is not an improvement:
 EM regresses 18.5 percentage points relative to vanilla GRPO.
+
+The composite-reward row was evaluated from the completed step-62 checkpoint
+on all 200 rows under the same seed-42 protocol. Its average task reward is
+0.5012, average turns 2.90, average generated length 47.52 tokens, and
+useful/executed ratio 66.31%. The evaluation artifact family is
+`grpo_composite_step62_nbh200_3090_20260912`.
 
 ## Interpretation
 
@@ -28,6 +34,10 @@ EM regresses 18.5 percentage points relative to vanilla GRPO.
 - Fresh DAPO is protocol-stable but one-search dominated. Its completed run did
   not apply effective overlong shaping because async prefilled scores bypassed
   that path.
+- Process-aware composite GRPO improves substantially over Base but underperforms
+  task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also produces
+  fewer useful searches and more wasted searches than task-only GRPO, so the
+  current composite objective is not an efficiency improvement.
 - The corrected assistant-only DAPO experiment is needed before drawing a
   causal conclusion about overlong shaping.
 

@@ -304,6 +304,7 @@ All values were recomputed from stored trajectories on the same
 |---|---:|---:|
 | Qwen3-8B Base | 32.5% | 42.03% |
 | Vanilla GRPO, step 62 | **51.5%** | **62.53%** |
+| Composite-reward GRPO, step 62 | 45.0% | 55.25% |
 | Fresh DAPO, step 62 | 33.0% | 41.83% |
 
 ### Tool-use Behavior
@@ -312,11 +313,15 @@ All values were recomputed from stored trajectories on the same
 |---|---:|---:|---:|---:|
 | Qwen3-8B Base | 1.335 | 31.5% | 0.965 | 0.370 |
 | Vanilla GRPO, step 62 | 1.960 | 86.0% | 1.445 | 0.515 |
+| Composite-reward GRPO, step 62 | 1.885 | 77.5% | 1.250 | 0.635 |
 | Fresh DAPO, step 62 | 1.100 | 10.0% | 0.880 | 0.220 |
 
 Fresh DAPO also reached 100% completion, 0% invalid actions, 80.0% tool
 efficiency (useful/executed), 0.3742 average task reward, and 2.10 average
-turns. Full provenance is in [experiments/results.md](experiments/results.md).
+turns. Composite-reward GRPO reached 98.0% completion, 0.52% invalid actions,
+and 66.31% tool efficiency. It remains stronger than Base but does not exceed
+task-only GRPO: useful retrieval falls while wasted retrieval rises. Full
+provenance is in [experiments/results.md](experiments/results.md).
 
 ## Case Study: DAPO's One-search Collapse
 

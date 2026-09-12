@@ -7,9 +7,9 @@ Recipe-level comparison and diagnosis for a Qwen3-8B multi-turn search agent.
 ```text
 Qwen3-8B Base
   → Vanilla GRPO, task reward                [completed and evaluated]
-  → GRPO, process-aware composite reward    [experiment in progress]
+  → GRPO, process-aware composite reward    [completed and evaluated]
   → Fresh DAPO, task reward                 [completed and evaluated]
-  → Corrected assistant-only DAPO           [experiment in progress]
+  → Corrected assistant-only DAPO           [pending]
 ```
 
 All methods use the same strict multi-turn BM25 environment for training and
@@ -49,6 +49,26 @@ Fresh DAPO is one-search dominated and regresses task quality relative to
 vanilla GRPO. The completed run did not exercise effective overlong shaping:
 async prefilled reward scores bypassed that term.
 
+### Process-aware Composite GRPO
+
+Natural Bridge-Hard, 200 examples:
+
+- EM: 45.0%
+- F1: 55.25%
+- completion: 98.0%
+- invalid action rate: 0.52%
+- searches: 1.885
+- multi-search: 77.5%
+- useful/wasted: 1.250 / 0.635
+- useful/executed: 66.31%
+- average task reward: 0.5012
+- average turns: 2.90
+
+The composite-reward policy remains substantially better than Base on answer
+quality, but it does not outperform task-only GRPO. Relative to task-only
+GRPO, it retrieves less useful evidence and performs more wasted searches.
+This result does not support the current composite reward as an improvement.
+
 ### Reward and Infrastructure Validation
 
 - Process-aware reward implemented as
@@ -60,23 +80,22 @@ async prefilled reward scores bypassed that term.
   penalty, and search count.
 - 91 unit/integration tests passed at the last full validation.
 
-## Experiments in Progress
+## Pending Experiment
 
-- GRPO with process-aware composite reward.
 - Corrected DAPO with assistant-only overlong accounting.
 
-These runs are not yet represented as completed results. Do not attribute the
-Fresh DAPO collapse to overlong shaping until the corrected ablation is
-finished and evaluated.
+Do not attribute the Fresh DAPO collapse to overlong shaping until the
+corrected ablation is finished and evaluated.
 
 ## Next Actions
 
-1. Complete and evaluate the composite-reward GRPO checkpoint.
-2. Complete and evaluate corrected assistant-only DAPO.
+1. Inspect composite-reward failures and reward-component dynamics to explain
+   the useful-search regression and wasted-search increase.
+2. Complete and evaluate corrected assistant-only DAPO when resources permit.
 3. Compare task quality, protocol reliability, search distribution,
    useful/wasted retrieval, and generated length.
-4. Update `experiments/results.md` only from stored evaluation artifacts.
-5. Decide whether a component-level DAPO ablation is justified.
+4. Decide whether a revised process reward or component-level DAPO ablation is
+   justified.
 
 ## Stable References
 
