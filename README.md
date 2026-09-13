@@ -120,7 +120,6 @@ This design intentionally avoids search-engine stochasticity. It makes changes i
 
 The current setup is therefore a **controlled multi-hop search testbed**, not an open-web search environment.
 
-
 ---
 
 ## Agent Loop
