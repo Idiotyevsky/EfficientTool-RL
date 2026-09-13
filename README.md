@@ -98,8 +98,10 @@ when to answer**.
 
 At each assistant turn, the policy chooses one of two actions:
 
-```math
-a_t \in \{\operatorname{Search}(query),\operatorname{Answer}(text)\}
+$$
+a_t \in
+\{\mathrm{Search}(query), \mathrm{Answer}(text)\}.
+$$
 
 Supervised Tool Calling examples can teach valid action syntax, but multi-turn
 search additionally requires a sequential policy over complete trajectories.
@@ -280,9 +282,7 @@ See the exact [`GRPO configuration`](configs/grpo/qwen8b_hotpot_mt_strict.yaml).
 The strongest-performing training recipe uses only final-answer quality:
 
 $$
-R_{\text{answer}}
-=
-0.5\,EM+0.5\,F1.
+R_{\text{answer}} = 0.5\,EM+0.5\,F1.
 $$
 
 A response without exactly one valid terminal `<answer>` receives zero reward.
