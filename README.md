@@ -98,10 +98,8 @@ when to answer**.
 
 At each assistant turn, the policy chooses one of two actions:
 
-$$
-a_t\in
-\{\operatorname{Search}(query),\operatorname{Answer}(text)\}.
-$$
+```math
+a_t \in \{\operatorname{Search}(query),\operatorname{Answer}(text)\}
 
 Supervised Tool Calling examples can teach valid action syntax, but multi-turn
 search additionally requires a sequential policy over complete trajectories.
