@@ -1,46 +1,52 @@
-# SearchAgent-RL
-
 <p align="center">
   <img src="assets/logo.svg" width="88" alt="SearchAgent-RL logo">
 </p>
 
-<h3 align="center">Reinforcement Learning for Multi-turn Search Agents</h3>
+<h1 align="center">SearchAgent-RL</h1>
 
 <p align="center">
-Train Qwen3-8B to decide <b>what to search, whether to search again, and when to answer</b> through multi-turn interaction.
+  <strong>Reinforcement Learning for Multi-turn Search Agents</strong>
 </p>
 
 <p align="center">
-  Qwen3-8B · GRPO · verl · vLLM · FSDP · Ray · HotpotQA
+  Training Qwen3-8B to search, observe, decide, and answer through multi-turn interaction.
+</p>
+
+<p align="center">
+  <img alt="Qwen3-8B" src="https://img.shields.io/badge/Model-Qwen3--8B-4f46e5">
+  <img alt="GRPO" src="https://img.shields.io/badge/RL-GRPO-0891b2">
+  <img alt="verl" src="https://img.shields.io/badge/Training-verl-334155">
+  <img alt="vLLM" src="https://img.shields.io/badge/Rollout-vLLM-334155">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-104%20passed-16a34a">
 </p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.svg">
-  <img alt="SearchAgent-RL pipeline" src="assets/hero-light.svg">
+  <img alt="SearchAgent-RL interaction and reinforcement-learning pipeline" src="assets/hero-light.svg">
 </picture>
 
-**SearchAgent-RL** is a reproducible Agentic RL project for training search
-agents in a controlled multi-hop retrieval environment.
+**SearchAgent-RL** is a reproducible Agentic RL project for training Qwen3-8B to
+solve multi-hop QA through multi-turn search.
 
-Instead of evaluating only final-answer accuracy, the project also tracks how RL
-changes the agent's **search depth, retrieval quality, stopping behavior, and
-protocol reliability**.
+Beyond final-answer accuracy, it measures how reinforcement learning changes the
+agent's **exploration depth, evidence acquisition, stopping behavior, and action
+validity**.
 
 ## Results at a Glance
 
-Evaluation on 200 Natural Bridge-Hard examples:
+Natural Bridge-Hard evaluation, 200 HotpotQA validation examples:
 
-| Metric           | Qwen3-8B Base | Vanilla GRPO |
-| ---------------- | ------------: | -----------: |
-| EM ↑             |         32.5% |    **51.5%** |
-| F1 ↑             |        42.03% |   **62.53%** |
-| Multi-search ↑   |         31.5% |    **86.0%** |
-| Invalid Action ↓ |        10.06% |    **0.17%** |
+| Metric           |   Base | Vanilla GRPO |
+| ---------------- | -----: | -----------: |
+| EM ↑             |  32.5% |    **51.5%** |
+| F1 ↑             | 42.03% |   **62.53%** |
+| Multi-search ↑   |  31.5% |    **86.0%** |
+| Invalid Action ↓ | 10.06% |    **0.17%** |
 
-**GRPO improves more than answer accuracy.** The trained policy performs
-substantially more multi-step retrieval while almost eliminating invalid
-actions.
+**GRPO improves more than answer accuracy.** The trained policy becomes
+substantially more likely to perform multi-step retrieval while almost
+eliminating invalid actions.
 
 ---
 
@@ -48,9 +54,14 @@ actions.
 
 ### Why Multi-turn Search?
 
-Many multi-hop questions cannot be solved by retrieving a single passage.
+SearchAgent-RL studies **bridge-style multi-hop QA** in a controlled retrieval
+environment.
 
-A typical bridge question follows this pattern:
+The agent receives a question, but not the answer. It can interact with a BM25
+search environment and must decide whether the currently retrieved evidence is
+sufficient or another search is required.
+
+A typical episode has an information dependency:
 
 ```text
 Question
@@ -59,7 +70,7 @@ Question
 Search #1
    │
    ▼
-Intermediate entity
+Bridge entity
    │
    ▼
 Search #2 conditioned on that entity
@@ -71,37 +82,33 @@ Answer evidence
 Final answer
 ```
 
-The second query depends on information revealed by the first retrieval:
+The second query may only become obvious after observing the first retrieval:
 
 $$
-q_{t+1}=f(q,h_t,o_t)
+q_{t+1}=f(q,h_t,o_t),
 $$
 
-where $h_t$ contains the prior interaction history and $o_t$ is the latest
-search observation.
+where $h_t$ is the interaction history and $o_t$ is the latest observation.
 
-SearchAgent-RL therefore treats retrieval as a **sequential decision problem**,
-not a one-shot RAG pipeline.
+This makes the task fundamentally different from one-shot retrieval: the agent
+must repeatedly decide **what to search for, whether to continue searching, and
+when to answer**.
 
 ### Why Reinforcement Learning?
 
-At each turn, the policy chooses between:
+At each assistant turn, the policy chooses one of two actions:
 
 $$
-a_t \in
+a_t\in
 \{\operatorname{Search}(query),\operatorname{Answer}(text)\}.
 $$
 
-A successful agent must jointly learn:
+Supervised Tool Calling examples can teach valid action syntax, but multi-turn
+search additionally requires a sequential policy over complete trajectories.
 
-- what query to issue;
-- whether current evidence is sufficient;
-- whether another retrieval is necessary;
-- when to stop searching;
-- how to produce the final answer.
-
-Supervised Tool Calling examples can teach valid syntax. RL instead optimizes
-the behavior of the **complete search-and-answer trajectory**.
+GRPO provides feedback at the trajectory level, allowing alternative
+search-and-answer strategies for the same question to compete against each
+other.
 
 ---
 
@@ -110,7 +117,7 @@ the behavior of the **complete search-and-answer trajectory**.
 ```mermaid
 flowchart TD
     Q[Question] --> P[Qwen3-8B Policy]
-    P --> A{Choose one action}
+    P --> A{Choose exactly one action}
 
     A -->|Search| C[Canonical Search Agent Loop]
     C --> B[Deterministic BM25]
@@ -118,12 +125,12 @@ flowchart TD
     O --> P
 
     A -->|Answer| F[Final Answer]
-    A -->|Invalid| X["Record & Terminate"]
+    A -->|Invalid| X[Record and terminate]
 ```
 
-Each assistant turn must emit exactly one action.
+Each assistant turn emits exactly one action.
 
-### Search
+**Search**
 
 ```xml
 <tool_call>
@@ -131,30 +138,31 @@ Each assistant turn must emit exactly one action.
 </tool_call>
 ```
 
-### Answer
+**Answer**
 
 ```xml
 <answer>7 January 1936</answer>
 ```
 
-### Interaction Constraints
-
-| Property                  |      Setting |
+| Constraint                |        Value |
 | ------------------------- | -----------: |
 | Maximum assistant turns   |            5 |
 | Maximum executed searches |            3 |
-| Search results per call   |            1 |
 | Parallel calls per turn   |            1 |
+| Results per search        |            1 |
 | Observation limit         |   384 tokens |
 | Response trajectory limit | 1,024 tokens |
 
-Search results are appended to the model context before the next policy
-decision.
+A search observation is appended to the context before the next policy decision.
 
-Malformed, mixed, unknown, or over-budget actions are recorded rather than
-silently executed. The project-local
+Malformed, mixed, unknown, or over-budget actions are recorded instead of being
+silently executed. An episode terminates on a valid answer, budget exhaustion,
+or protocol failure.
+
+The project-local
 [`CanonicalToolAgentLoop`](src/efficienttool_rl/verl/canonical_agent_loop.py)
-keeps local evaluation aligned with verl's native asynchronous `ToolAgentLoop`.
+aligns local evaluation with verl's native asynchronous `ToolAgentLoop` without
+modifying upstream verl.
 
 Parser and protocol handling live in
 [`protocol.py`](src/efficienttool_rl/protocol.py).
@@ -163,56 +171,55 @@ Parser and protocol handling live in
 
 ## Example: A Two-hop Search Trajectory
 
-The following is a successful trajectory sampled on Natural Bridge-Hard:
+A real successful Natural Bridge-Hard trajectory:
 
 ```text
 Question:
 When was the British author who wrote the novel on which
 "Here We Go Round the Mulberry Bush" was based born?
 
-Turn 1
-Search:
+Turn 1 — Search:
 British author novel Here We Go Round the Mulberry Bush
 
 Observation:
 The 1967 British film was based on the novel of the same name
 by Hunter Davies.
 
-Turn 2
-Search:
+Turn 2 — Search:
 Hunter Davies born
 
 Observation:
 Edward Hunter Davies, OBE (born 7 January 1936) is a British author,
 journalist and broadcaster.
 
-Final:
+Final Answer:
 <answer>7 January 1936</answer>
 ```
 
-The first retrieval identifies the bridge entity **Hunter Davies**. Only then
-can the agent formulate the second query that retrieves the answer evidence.
+The first search discovers the bridge entity **Hunter Davies**. The second query
+is then conditioned on that newly observed entity and retrieves the answer
+evidence.
 
-This information dependency is absent from a one-shot retrieval pipeline.
+That dependency is the core behavior studied by SearchAgent-RL.
 
 ---
 
 ## Agentic RL Pipeline
 
-For each question, the policy samples a group of complete multi-turn
+For every question, the policy samples a group of complete multi-turn
 trajectories:
 
 ```mermaid
 flowchart LR
-    Q[Question] --> G[4 Agent Rollouts]
-    G --> T[Multi-turn Trajectories]
-    T --> R[Trajectory Rewards]
-    R --> A[Group-relative Advantages]
+    Q[Question] --> R[4 Agent Rollouts]
+    R --> T[Multi-turn Trajectories]
+    T --> W[Trajectory Rewards]
+    W --> A[Group-relative Advantages]
     A --> L[GRPO Objective]
-    L --> U[Qwen3-8B Update]
+    L --> U[Policy Update]
 ```
 
-A trajectory may contain multiple policy decisions and environment observations:
+A trajectory can contain multiple policy decisions and environment observations:
 
 ```text
 question
@@ -223,8 +230,8 @@ question
   → answer
 ```
 
-With batch size 32 and group size 4, each optimizer update evaluates 128
-complete agent trajectories.
+With 32 questions and 4 rollouts per question, one optimizer update samples
+**128 complete agent trajectories**.
 
 ---
 
@@ -237,7 +244,7 @@ $$
 \qquad G=4.
 $$
 
-The trajectory rewards are normalized within the group:
+Rewards are normalized within the group:
 
 $$
 A_i=
@@ -245,32 +252,34 @@ A_i=
 {\sigma_R+\epsilon}.
 $$
 
-Trajectories that outperform alternatives for the same question receive positive
-advantage, while weaker trajectories receive negative advantage.
+A trajectory that performs better than alternative trajectories for the same
+question receives positive advantage; weaker trajectories receive negative
+advantage.
 
-The policy is then optimized with a clipped objective without training a
-separate critic.
+The policy is updated with a clipped objective and no learned critic.
 
 The main Vanilla GRPO run uses:
 
 - Qwen3-8B;
 - 2,000 training prompts;
-- 4 rollouts per prompt;
+- 4 trajectories per prompt;
 - 62 optimizer updates;
-- asynchronous vLLM generation;
-- FSDP distributed training;
+- asynchronous vLLM rollout;
+- PyTorch FSDP + Ray;
 - actor KL coefficient `0.001`.
 
-See the exact
-[training configuration](configs/grpo/qwen8b_hotpot_mt_strict.yaml).
+The run had a zero-variance group ratio of `0.684`, yet still produced a large
+improvement on the evaluation set.
+
+See the exact [`GRPO configuration`](configs/grpo/qwen8b_hotpot_mt_strict.yaml).
 
 ---
 
 ## Reward Engineering
 
-### Task Reward
+### Task-only Reward
 
-The strongest-performing training recipe uses a simple final-answer reward:
+The strongest-performing training recipe uses only final-answer quality:
 
 $$
 R_{\text{answer}}
@@ -278,25 +287,26 @@ R_{\text{answer}}
 0.5\,EM+0.5\,F1.
 $$
 
-This intentionally does **not** directly reward search depth or tool usage.
+A response without exactly one valid terminal `<answer>` receives zero reward.
 
-The result is important: task-only GRPO is already able to learn substantially
-stronger multi-step search behavior from trajectory-level outcome feedback.
+Importantly, this objective does **not** directly reward search depth,
+supporting-document retrieval, or tool usage.
+
+Nevertheless, Vanilla GRPO increases multi-search from **31.5% to 86.0%**,
+showing that stronger multi-step retrieval behavior can emerge from
+trajectory-level outcome supervision alone.
 
 ### Process-aware Reward v2
 
-We also investigate whether explicit process signals can produce a cleaner
-retrieval policy.
+We also study whether explicit process shaping can reduce unnecessary retrieval.
 
 Reward v2 uses:
 
 $$
-R =
+R=
 R_{\text{answer}}
-+
-\beta_t R_{\text{evidence}}
--
-\lambda R_{\text{answer}}N_{\text{non-support}},
++\beta_tR_{\text{evidence}}
+-\lambda R_{\text{answer}}N_{\text{no-new-support}},
 $$
 
 with
@@ -307,37 +317,50 @@ $$
 \lambda=0.02.
 $$
 
-The design has three components:
+It contains three design choices:
 
-**Evidence shaping.** Newly covered gold supporting documents contribute
-evidence gain; duplicate retrieval does not accumulate additional evidence
-reward.
+**Evidence shaping.** Each search is analyzed according to whether it discovers
+a previously unseen gold supporting document. Duplicate or irrelevant retrieval
+contributes no new evidence gain.
 
-**Annealing.** The evidence coefficient decays with optimizer progress so that
-training gradually returns toward answer-quality optimization.
+**Annealing.** The evidence coefficient decays with global optimizer progress so
+that training gradually returns toward answer-quality optimization.
 
-**Success-gated search regularization.** **Success-gated search
-regularization.** A non-support retrieval incurs only a weak penalty
-proportional to answer quality. The objective does not directly reward premature
-stopping.
+**Success-gated retrieval regularization.** Searches that retrieve no new gold
+supporting document receive only a weak penalty proportional to final answer
+quality. This prevents the reward from directly favoring premature stopping.
 
-The current implementation still uses a **trajectory-level scalar reward**.
-Incremental evidence statistics provide process diagnostics, but are not
-action-local policy-gradient credit. Reward metadata, including gold answers and
-supporting-document labels, is used only offline and is never inserted into the
-model-visible prompt or search observation. Reward metadata such as gold answers
-and supporting-document labels is used only offline and is never inserted into
-the model-visible prompt or search observation.
+The current implementation still supplies GRPO with a **trajectory-level scalar
+reward**. Per-search evidence gains are useful diagnostics, but they do not
+constitute action-local policy-gradient credit.
 
-See the [Reward v2 implementation](src/efficienttool_rl/rewards/reward_v2.py).
+Gold answers and supporting-document annotations are reward-only metadata and
+are never exposed in the model prompt, search query, or tool observation.
+
+See [`reward_v2.py`](src/efficienttool_rl/rewards/reward_v2.py) and its
+[`training config`](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
+
+### Reward Evolution
+
+| Version        | Main design                                                        | Result                                                        |
+| -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Composite v1   | Answer + final evidence coverage + format                          | Improves over Base, but increases unnecessary retrieval       |
+| Reward v2      | Annealed evidence shaping + success-gated retrieval regularization | Similar task quality to v1 with fewer no-new-support searches |
+| Task-only GRPO | Answer reward only                                                 | **Best overall EM/F1**                                        |
+
+Reward v2 is therefore a **performance–retrieval-cost trade-off**, not a Pareto
+improvement over task-only GRPO.
+
+The Composite v1 offline analysis is available in
+[`analysis/composite_reward_pilot`](analysis/composite_reward_pilot/README.md).
 
 ---
 
-## Evaluation
+## Evaluation Results
 
-All methods below are evaluated on the same **Natural Bridge-Hard evaluation
-set**: 200 official HotpotQA validation examples with:
+All methods below use the same **Natural Bridge-Hard evaluation protocol**:
 
+- 200 official HotpotQA validation examples;
 - `type = bridge`;
 - `level = hard`;
 - deterministic top-1 BM25 retrieval;
@@ -346,33 +369,35 @@ set**: 200 official HotpotQA validation examples with:
 
 ### Task Quality
 
-| Method              |      EM ↑ |       F1 ↑ |
-| ------------------- | --------: | ---------: |
-| Qwen3-8B Base       |     32.5% |     42.03% |
-| **Vanilla GRPO**    | **51.5%** | **62.53%** |
-| Composite Reward v1 |     45.0% |     55.25% |
-| Reward v2           |     45.5% |     56.83% |
-
-Here, **Support-hit** means an executed search that retrieves a previously
-unseen gold supporting document. **Non-support** is the complementary
-annotation-based proxy and includes irrelevant retrievals and repeated support;
-neither metric is a perfect semantic measure of whether a search helped the
-model.
+| Method           |      EM ↑ |       F1 ↑ |
+| ---------------- | --------: | ---------: |
+| Base             |     32.5% |     42.03% |
+| **Vanilla GRPO** | **51.5%** | **62.53%** |
+| Composite v1     |     45.0% |     55.25% |
+| Reward v2        |     45.5% |     56.83% |
 
 ### Search Behavior
 
-| Method           | Searches | Multi-search ↑ | Support-hit | Non-support | Support-hit Rate ↑ | Invalid ↓ |
-| ---------------- | -------: | -------------: | ----------: | ----------: | -----------------: | --------: |
-| Base             |    1.335 |          31.5% |       0.965 |       0.370 |             72.28% |    10.06% |
-| **Vanilla GRPO** |    1.960 |      **86.0%** |   **1.445** |       0.515 |             73.72% | **0.17%** |
-| Composite v1     |    1.885 |          77.5% |       1.250 |       0.635 |             66.31% |     0.52% |
-| Reward v2        |    1.675 |          64.0% |       1.250 |   **0.425** |         **74.63%** |     0.37% |
+| Method           | Searches | Multi-search ↑ | Support-hit | No-new-support ↓ | Support-hit Rate ↑ | Invalid Action ↓ |
+| ---------------- | -------: | -------------: | ----------: | ---------------: | -----------------: | ---------------: |
+| Base             |    1.335 |          31.5% |       0.965 |            0.370 |             72.28% |           10.06% |
+| **Vanilla GRPO** |    1.960 |      **86.0%** |   **1.445** |            0.515 |             73.72% |        **0.17%** |
+| Composite v1     |    1.885 |          77.5% |       1.250 |            0.635 |             66.31% |            0.52% |
+| Reward v2        |    1.675 |          64.0% |       1.250 |        **0.425** |         **74.63%** |            0.37% |
 
-### What did we learn?
+**Support-hit** means that an executed search retrieves at least one previously
+unseen gold supporting document.
 
-**1. Task-only GRPO is the strongest overall policy.**
+**No-new-support** is the complementary annotation-based proxy: the search
+executed successfully but added no new gold supporting document. It should not
+be interpreted as a perfect causal measure of whether the retrieval was useful
+to the model.
 
-It improves both answer quality and multi-step exploration:
+### Key Findings
+
+**1. Vanilla GRPO gives the strongest overall policy.**
+
+It improves both task quality and multi-step exploration:
 
 $$
 EM:\ 32.5\%\rightarrow51.5\%
@@ -382,39 +407,51 @@ $$
 MultiSearch:\ 31.5\%\rightarrow86.0\%.
 $$
 
-**2. More searching is not automatically better.**
+**2. Search count alone is not an efficiency metric.**
 
-GRPO increases both support-hit and non-support retrieval. Search count
-therefore needs to be evaluated together with answer quality and retrieval
-quality.
+GRPO increases both support-hit and no-new-support retrieval. Search behavior
+therefore needs to be evaluated jointly with final task quality.
 
-**3. Process reward introduces a trade-off rather than a free improvement.**
+**3. Explicit process shaping introduces a trade-off.**
 
-Reward v2 reduces non-support retrieval relative to Composite v1 while
-maintaining similar task quality, but it still trails task-only GRPO on EM/F1.
+Reward v2 reduces no-new-support retrieval relative to Composite v1 while
+maintaining similar answer quality, but it still trails task-only GRPO on EM/F1.
 
-For complete metrics, run provenance, and artifact hashes, see
+Complete experiment provenance and artifact hashes are recorded in
 [`experiments/results.md`](experiments/results.md).
 
 ---
 
-## Engineering Stack
+## Engineering & Reproducibility
 
-| Layer                | Implementation                                         |
-| -------------------- | ------------------------------------------------------ |
-| Base model           | Qwen3-8B                                               |
-| RL training          | verl + GRPO                                            |
-| Rollout engine       | vLLM async generation                                  |
-| Distributed training | PyTorch FSDP + Ray                                     |
-| Search environment   | Deterministic per-trajectory BM25                      |
-| Agent runtime        | Native ToolAgentLoop + project-local canonical adapter |
-| Dataset              | HotpotQA multi-hop QA                                  |
-| Evaluation           | Answer quality + behavioral search metrics             |
-| Tests                | 104 unit/integration tests                             |
+| Layer                | Implementation                                |
+| -------------------- | --------------------------------------------- |
+| Base model           | Qwen3-8B, bf16                                |
+| RL training          | verl + GRPO                                   |
+| Rollout              | vLLM 0.11.0 async generation                  |
+| Distributed training | PyTorch FSDP + Ray                            |
+| Search environment   | Deterministic per-trajectory BM25             |
+| Agent runtime        | Native ToolAgentLoop + CanonicalToolAgentLoop |
+| Dataset              | HotpotQA multi-hop QA                         |
+| Evaluation           | Answer quality + search-policy behavior       |
+| Tests                | 104 unit/integration tests                    |
 
 Upstream verl remains unmodified. Project-specific agent-loop and reward-manager
-adaptations live under
+integrations are isolated under
 [`src/efficienttool_rl/verl`](src/efficienttool_rl/verl/).
+
+Completed experiments record:
+
+- training configuration;
+- random seed;
+- dataset fingerprint;
+- checkpoint step;
+- evaluation protocol;
+- trajectory artifact IDs;
+- SHA-256 hashes for published evaluation outputs.
+
+See [`experiments/results.md`](experiments/results.md) for the canonical
+experiment table.
 
 ---
 
@@ -428,22 +465,20 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -e ".[test]"
-
 PYTHONPATH=src python examples/01_tool_calling.py
 ```
 
-The CPU example exercises the real parser and BM25 search environment without
-requiring a model download or an RL training run. without requiring a full RL
-training run.
+The CPU smoke test exercises the real parser and BM25 search environment without
+requiring a model download or a full RL training run.
 
-For the validated GPU software stack, see
+For the validated GPU stack, see
 [`docs/environment_report.md`](docs/environment_report.md).
 
 ---
 
-## Training
+## Training & Evaluation
 
-Set the verl, model, data, and output paths:
+Set the required paths:
 
 ```bash
 export VERL_CONFIG_PATH=/path/to/verl/verl/trainer/config
@@ -467,9 +502,7 @@ python scripts/train_grpo.py \
   --config-name qwen8b_hotpot_reward_v2
 ```
 
----
-
-## Evaluation Command
+### Evaluation
 
 ```bash
 python scripts/evaluate.py \
@@ -485,8 +518,8 @@ python scripts/evaluate.py \
   --max-observation-tokens 384
 ```
 
-Comparisons use identical search budgets and evaluation protocols across
-training recipes and checkpoints.
+Methods should be compared under identical search budgets and evaluation
+settings.
 
 ---
 
@@ -494,22 +527,22 @@ training recipes and checkpoints.
 
 ### Composite Reward v1
 
-An earlier reward combined final-answer quality, final supporting-document
-coverage, and protocol-format signals.
+An earlier reward combined answer quality, final supporting-document coverage,
+and protocol-format signals.
 
-Offline analysis showed that evidence coverage carries useful signal while
-format reward was already near ceiling. Reward v2 therefore removes the format
-component and introduces annealing plus weak search regularization.
+Offline analysis showed that supporting-document coverage carries useful signal
+while format validity is already near ceiling. This motivated the simpler Reward
+v2 design.
 
 See the [`Composite Reward Pilot`](analysis/composite_reward_pilot/README.md).
 
 ### DAPO
 
-DAPO-style training was also evaluated as an auxiliary experiment.
+DAPO-style training was evaluated as an auxiliary study.
 
 In the current setting it converged toward a conservative one-search policy and
-did not outperform Vanilla GRPO. Because this behavior is not part of the main
-project claim, the detailed analysis is kept separate:
+did not outperform Vanilla GRPO. Because DAPO is not part of the main project
+claim, the detailed investigation is kept separate:
 
 [`DAPO Diagnosis`](analysis/dapo_diagnostics/README.md)
 
@@ -519,39 +552,23 @@ project claim, the detailed analysis is kept separate:
 
 ```text
 SearchAgent-RL/
-├── configs/
-│   └── grpo/                  # Training recipes
-├── src/efficienttool_rl/
-│   ├── tools/                 # BM25 search environment
-│   ├── rewards/               # Task and process-aware rewards
-│   ├── evaluation/            # Task and behavioral metrics
-│   └── verl/                  # Agent-loop / reward-manager adapters
-├── scripts/                   # Data, training, evaluation, analysis
-├── experiments/               # Verified results and provenance
-├── analysis/                  # Focused auxiliary studies
-├── tests/                     # Unit and integration tests
-└── docs/                      # Environment and archived development notes
+├── configs/                  # Training and search-loop configurations
+├── src/efficienttool_rl/     # Stable Python import package
+│   ├── tools/                # Deterministic BM25 search
+│   ├── rewards/              # Task and process-aware rewards
+│   ├── evaluation/           # Task and behavioral metrics
+│   └── verl/                 # Agent-loop and reward-manager adapters
+├── scripts/                  # Data, training, evaluation, and analysis CLIs
+├── experiments/              # Verified results and provenance
+├── analysis/                 # Focused reward and auxiliary studies
+├── tests/                    # Unit and integration tests
+├── docs/archive/             # Historical plans and superseded narratives
+├── AGENTS.md                 # Research-engineering conventions
+└── PROGRESS.md               # Current experiment status
 ```
 
-The Python import package remains `efficienttool_rl` for backward compatibility
-with existing runs and artifacts.
-
----
-
-## Reproducibility
-
-For completed experiments, the repository records:
-
-- exact training configuration;
-- random seed;
-- dataset fingerprint;
-- checkpoint step;
-- evaluation protocol;
-- trajectory artifacts;
-- SHA-256 hashes for published evaluation outputs.
-
-See [`experiments/results.md`](experiments/results.md) for the canonical
-experiment table.
+The source package remains `efficienttool_rl` for compatibility with existing
+runs and artifacts.
 
 ---
 
@@ -559,13 +576,15 @@ experiment table.
 
 SearchAgent-RL is intentionally a **controlled multi-hop retrieval testbed**.
 
-The current environment uses per-example HotpotQA distractor passages and
-deterministic BM25 retrieval rather than an open-web search engine. This keeps
-the environment reproducible and makes changes in agent search behavior easier
-to attribute to RL training.
+The current environment searches the distractor passages associated with each
+HotpotQA example using deterministic BM25 rather than an open-web search engine.
+
+This design trades environment breadth for experimental control: changes in
+retrieval behavior are easier to attribute to RL training when the corpus,
+search backend, and interaction budget are fixed.
 
 The project therefore studies:
 
 > **how reinforcement learning shapes sequential search policies**
 
-rather than claiming general web-search-agent capability.
+rather than claiming general-purpose web-search capability.

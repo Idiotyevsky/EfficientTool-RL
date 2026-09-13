@@ -6,14 +6,14 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 
 ## Evaluation Comparison
 
-| Method                           | Training reward                                   |          EM |          F1 |  Completion | Invalid action |    Searches | Multi-search | Support-hit | Non-support |
-| -------------------------------- | ------------------------------------------------- | ----------: | ----------: | ----------: | -------------: | ----------: | -----------: | ----------: | ----------: |
-| Qwen3-8B Base                    | —                                                 |       32.5% |      42.03% |       93.5% |         10.06% |       1.335 |        31.5% |       0.965 |       0.370 |
-| Vanilla GRPO, step 62            | task-only                                         |       51.5% |      62.53% |       97.5% |          0.17% |       1.960 |        86.0% |       1.445 |       0.515 |
-| Fresh DAPO, step 62              | task-only                                         |       33.0% |      41.83% |        100% |             0% |       1.100 |        10.0% |       0.880 |       0.220 |
-| GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05                                 |       45.0% |      55.25% |       98.0% |          0.52% |       1.885 |        77.5% |       1.250 |       0.635 |
-| GRPO + Reward v2, step 62        | answer + annealed marginal evidence - gated waste |       45.5% |      56.83% |       99.0% |          0.37% |       1.675 |        64.0% |       1.250 |       0.425 |
-| Corrected assistant-only DAPO    | task + overlong                                   | in progress | in progress | in progress |    in progress | in progress |  in progress | in progress | in progress |
+| Method                           | Training reward                                   |          EM |          F1 |  Completion | Invalid action |    Searches | Multi-search | Support-hit | No-new-support |
+| -------------------------------- | ------------------------------------------------- | ----------: | ----------: | ----------: | -------------: | ----------: | -----------: | ----------: | -------------: |
+| Qwen3-8B Base                    | —                                                 |       32.5% |      42.03% |       93.5% |         10.06% |       1.335 |        31.5% |       0.965 |          0.370 |
+| Vanilla GRPO, step 62            | task-only                                         |       51.5% |      62.53% |       97.5% |          0.17% |       1.960 |        86.0% |       1.445 |          0.515 |
+| Fresh DAPO, step 62              | task-only                                         |       33.0% |      41.83% |        100% |             0% |       1.100 |        10.0% |       0.880 |          0.220 |
+| GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05                                 |       45.0% |      55.25% |       98.0% |          0.52% |       1.885 |        77.5% |       1.250 |          0.635 |
+| GRPO + Reward v2, step 62        | answer + annealed marginal evidence - gated waste |       45.5% |      56.83% |       99.0% |          0.37% |       1.675 |        64.0% |       1.250 |          0.425 |
+| Corrected assistant-only DAPO    | task + overlong                                   | in progress | in progress | in progress |    in progress | in progress |  in progress | in progress |    in progress |
 
 Fresh DAPO was re-aggregated from 200 rows in the stored artifact family
 dapo_fresh62_nbh200/shard_{0,1,2}. Its average task reward is 0.3742, average
@@ -46,18 +46,18 @@ SHA-256: `trajectories.jsonl`
 - Base tends to stop after one search and under-retrieves for many bridge
   questions.
 - Vanilla GRPO substantially improves task quality and moves the policy toward
-  multi-step retrieval. Both support hits and non-support calls increase.
+  multi-step retrieval. Both support hits and no-new-support calls increase.
 - Fresh DAPO is protocol-stable but one-search dominated. Its completed run did
   not apply effective overlong shaping because async prefilled scores bypassed
   that path.
 - Process-aware composite GRPO improves substantially over Base but
   underperforms task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also
-  produces fewer support hits and more non-support calls than task-only GRPO, so
-  the current composite objective is not an efficiency improvement.
+  produces fewer support hits and more no-new-support calls than task-only GRPO,
+  so the current composite objective is not an efficiency improvement.
 - Reward v2 improves over Composite v1 by 0.5 EM and 1.58 F1 percentage points,
-  preserves the same support-hit count, and reduces non-support calls by 0.210
-  per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points and
-  retrieves less annotated supporting evidence, so it is not a Pareto
+  preserves the same support-hit count, and reduces no-new-support calls by
+  0.210 per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points
+  and retrieves less annotated supporting evidence, so it is not a Pareto
   improvement over the task-only baseline.
 - The corrected assistant-only DAPO experiment is needed before drawing a causal
   conclusion about overlong shaping.
@@ -82,7 +82,7 @@ and methodology are in
 Each completed run must report:
 
 - EM, token F1, completion, and invalid-action rate;
-- attempted, valid, executed, support-hit, and non-support tool calls;
+- attempted, valid, executed, support-hit, and no-new-support tool calls;
 - turns, generated length, and search-count distribution;
 - reward/component distributions and zero-variance group ratio;
 - gradient norm, entropy, KL where enabled;
