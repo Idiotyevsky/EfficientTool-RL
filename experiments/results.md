@@ -6,38 +6,39 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 
 ## Evaluation Comparison
 
-| Method | Training reward | EM | F1 | Completion | Invalid action | Searches | Multi-search | Support-hit | Non-support |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Qwen3-8B Base | — | 32.5% | 42.03% | 93.5% | 10.06% | 1.335 | 31.5% | 0.965 | 0.370 |
-| Vanilla GRPO, step 62 | task-only | 51.5% | 62.53% | 97.5% | 0.17% | 1.960 | 86.0% | 1.445 | 0.515 |
-| Fresh DAPO, step 62 | task-only | 33.0% | 41.83% | 100% | 0% | 1.100 | 10.0% | 0.880 | 0.220 |
-| GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05 | 45.0% | 55.25% | 98.0% | 0.52% | 1.885 | 77.5% | 1.250 | 0.635 |
-| GRPO + Reward v2, step 62 | answer + annealed marginal evidence - gated waste | 45.5% | 56.83% | 99.0% | 0.37% | 1.675 | 64.0% | 1.250 | 0.425 |
-| Corrected assistant-only DAPO | task + overlong | in progress | in progress | in progress | in progress | in progress | in progress | in progress | in progress |
+| Method                           | Training reward                                   |          EM |          F1 |  Completion | Invalid action |    Searches | Multi-search | Support-hit | Non-support |
+| -------------------------------- | ------------------------------------------------- | ----------: | ----------: | ----------: | -------------: | ----------: | -----------: | ----------: | ----------: |
+| Qwen3-8B Base                    | —                                                 |       32.5% |      42.03% |       93.5% |         10.06% |       1.335 |        31.5% |       0.965 |       0.370 |
+| Vanilla GRPO, step 62            | task-only                                         |       51.5% |      62.53% |       97.5% |          0.17% |       1.960 |        86.0% |       1.445 |       0.515 |
+| Fresh DAPO, step 62              | task-only                                         |       33.0% |      41.83% |        100% |             0% |       1.100 |        10.0% |       0.880 |       0.220 |
+| GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05                                 |       45.0% |      55.25% |       98.0% |          0.52% |       1.885 |        77.5% |       1.250 |       0.635 |
+| GRPO + Reward v2, step 62        | answer + annealed marginal evidence - gated waste |       45.5% |      56.83% |       99.0% |          0.37% |       1.675 |        64.0% |       1.250 |       0.425 |
+| Corrected assistant-only DAPO    | task + overlong                                   | in progress | in progress | in progress |    in progress | in progress |  in progress | in progress | in progress |
 
 Fresh DAPO was re-aggregated from 200 rows in the stored artifact family
-dapo_fresh62_nbh200/shard_{0,1,2}. Its average task reward is 0.3742,
-average turns 2.10, and support-hit rate 80.0%. Its lower absolute tool cost is not an improvement:
-EM regresses 18.5 percentage points relative to vanilla GRPO.
+dapo_fresh62_nbh200/shard_{0,1,2}. Its average task reward is 0.3742, average
+turns 2.10, and support-hit rate 80.0%. Its lower absolute tool cost is not an
+improvement: EM regresses 18.5 percentage points relative to vanilla GRPO.
 
-The composite-reward row was evaluated from the completed step-62 checkpoint
-on all 200 rows under the same seed-42 protocol. Its average task reward is
-0.5012, average turns 2.90, average generated length 47.52 tokens, and
-support-hit rate 66.31%. The evaluation artifact family is
+The composite-reward row was evaluated from the completed step-62 checkpoint on
+all 200 rows under the same seed-42 protocol. Its average task reward is 0.5012,
+average turns 2.90, average generated length 47.52 tokens, and support-hit rate
+66.31%. The evaluation artifact family is
 `grpo_composite_step62_nbh200_3090_20260912`.
 
 Reward v2 completed 62 optimizer updates and was evaluated from the merged
 step-62 checkpoint under the same seed-42 protocol. Its average task reward is
 0.5117, average turns 2.685, average generated length 45.59 tokens, and
-support-hit rate 74.63%. Search counts were 72 one-search, 121 two-search,
-and 7 three-search trajectories; no episode used zero searches. The training
-artifact is `reward_v2_4090_4gpu_20260912_1100`, and the evaluation artifact is
+support-hit rate 74.63%. Search counts were 72 one-search, 121 two-search, and 7
+three-search trajectories; no episode used zero searches. The training artifact
+is `reward_v2_4090_4gpu_20260912_1100`, and the evaluation artifact is
 `reward_v2_step62_nbh200_3090_20260913`. The evaluation data fingerprint is
-`1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`.
-Artifact SHA-256: `trajectories.jsonl`
+`1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`. Artifact
+SHA-256: `trajectories.jsonl`
 `92f58a6fc5fd56c0a06384c9338aa6c9a739df172ecbb0dc22f392be3e53848b`,
-`metrics.json` `2d40f2dc8364f0abbfd0936b4ada3392913fd08ee169ec8630aa43cd709e7471`,
-and `run_config.json`
+`metrics.json`
+`2d40f2dc8364f0abbfd0936b4ada3392913fd08ee169ec8630aa43cd709e7471`, and
+`run_config.json`
 `b2e09d89f90a262cdb8b79dddfe5372dd6ed2321f3e6b5298a3df26a75635a2f`.
 
 ## Interpretation
@@ -49,31 +50,31 @@ and `run_config.json`
 - Fresh DAPO is protocol-stable but one-search dominated. Its completed run did
   not apply effective overlong shaping because async prefilled scores bypassed
   that path.
-- Process-aware composite GRPO improves substantially over Base but underperforms
-  task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also produces
-  fewer support hits and more non-support calls than task-only GRPO, so
+- Process-aware composite GRPO improves substantially over Base but
+  underperforms task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also
+  produces fewer support hits and more non-support calls than task-only GRPO, so
   the current composite objective is not an efficiency improvement.
 - Reward v2 improves over Composite v1 by 0.5 EM and 1.58 F1 percentage points,
-  preserves the same support-hit count, and reduces non-support calls by
-  0.210 per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points
-  and retrieves less annotated supporting evidence, so it is not a Pareto
+  preserves the same support-hit count, and reduces non-support calls by 0.210
+  per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points and
+  retrieves less annotated supporting evidence, so it is not a Pareto
   improvement over the task-only baseline.
-- The corrected assistant-only DAPO experiment is needed before drawing a
-  causal conclusion about overlong shaping.
+- The corrected assistant-only DAPO experiment is needed before drawing a causal
+  conclusion about overlong shaping.
 
 ## Composite Reward Offline Audit
 
 The process-aware reward was replayed over stored fixed-policy trajectories
 before training:
 
-| Stored policy | Answer mean | Evidence mean | Format mean | corr(evidence, EM) | Answer share |
-|---|---:|---:|---:|---:|---:|
-| Qwen3-8B Base | 0.2747 | 0.5575 | 0.9483 | 0.532 | 0.627 |
-| Vanilla GRPO step 62 | 0.6597 | 0.8100 | 0.9872 | 0.585 | 0.755 |
+| Stored policy        | Answer mean | Evidence mean | Format mean | corr(evidence, EM) | Answer share |
+| -------------------- | ----------: | ------------: | ----------: | -----------------: | -----------: |
+| Qwen3-8B Base        |      0.2747 |        0.5575 |      0.9483 |              0.532 |        0.627 |
+| Vanilla GRPO step 62 |      0.6597 |        0.8100 |      0.9872 |              0.585 |        0.755 |
 
 Evidence coverage carries non-zero signal; format is near ceiling and remains
-auxiliary; answer reward retains the largest aggregate contribution. Raw
-reports and methodology are in
+auxiliary; answer reward retains the largest aggregate contribution. Raw reports
+and methodology are in
 [the composite reward pilot](../analysis/composite_reward_pilot/README.md).
 
 ## Metrics Required for New Rows
