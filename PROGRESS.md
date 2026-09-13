@@ -105,7 +105,7 @@ Pareto improvement over the task-only baseline.
 - Project-local assistant-only DAPO reward manager uses the response mask for
   generated-token length and logs assistant length, total trajectory length,
   penalty, and search count.
-- 107 unit/integration tests passed in the latest full validation.
+- 108 unit/integration tests passed in the latest full validation.
 
 ## Pending Experiment
 

@@ -46,6 +46,40 @@ def test_aggregate_jsonl_computes_means_and_group_variance(tmp_path):
     assert metrics["group_count"] == 2.0
 
 
+def test_aggregate_jsonl_recovers_legacy_search_metrics_from_output(tmp_path):
+    path = tmp_path / "1.jsonl"
+    rows = [
+        {
+            "input": "system\n...\nuser\nquestion one\nassistant",
+            "gts": "answer",
+            "output": (
+                '<tool_call>{"name":"search","arguments":{"query":"first"}}'
+                "</tool_call>\n"
+                '<tool_response>{"ok":true,"tool":"search","query":"first",'
+                '"results":[]}</tool_response>\n'
+                '<tool_call>{"name":"search","arguments":{"query":"second"}}'
+                "</tool_call>\n"
+                '<tool_response>{"ok":true,"tool":"search","query":"second",'
+                '"results":[]}</tool_response>\n'
+                "<answer>answer</answer>"
+            ),
+            "score": 1.0,
+        },
+        {
+            "input": "system\n...\nuser\nquestion two\nassistant",
+            "gts": "answer",
+            "output": "<answer>answer</answer>",
+            "score": 1.0,
+        },
+    ]
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+    metrics = aggregate_jsonl(path)
+
+    assert metrics["search_count"] == 1.0
+    assert metrics["multi_search"] == 0.5
+
+
 def test_load_run_directory_keeps_observed_steps_only(tmp_path):
     rollouts, validation = tmp_path / "rollouts", tmp_path / "validation"
     rollouts.mkdir()

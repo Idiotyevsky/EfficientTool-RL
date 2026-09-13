@@ -17,7 +17,7 @@
   <img alt="GRPO" src="https://img.shields.io/badge/RL-GRPO-0891b2">
   <img alt="verl" src="https://img.shields.io/badge/Training-verl-334155">
   <img alt="vLLM" src="https://img.shields.io/badge/Rollout-vLLM-334155">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-107%20passed-16a34a">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-108%20passed-16a34a">
 </p>
 
 <picture>
@@ -348,25 +348,27 @@ are never exposed in the model prompt, search query, or tool observation.
 See [`reward_v2.py`](src/efficienttool_rl/rewards/reward_v2.py) and its
 [`training config`](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
 
-### Reward v2 Training Dynamics
+### Training Dynamics
 
-The curves below are aggregated directly from all 62 rollout steps and the
-eight observed Hotpot-MT Strict validation checkpoints. Training lines show a
-five-step centered rolling mean over faint raw values; validation points are
-not interpolated.
+The comparison below is aggregated directly from all 62 rollout steps and the
+eight observed Hotpot-MT Strict validation checkpoints for both Vanilla GRPO
+and Reward v2. Training lines show a five-step centered rolling mean over faint
+raw values; validation points are not interpolated.
 
-![Reward v2 training reward, strict validation quality, search behavior, and episode outcomes](assets/training-curves/reward-v2/training_overview.svg)
+![Vanilla GRPO and Reward v2 training reward, strict validation quality, search behavior, and episode outcomes](assets/training-curves/grpo-comparison/training_overview.svg)
 
-Two diagnostic panels preserve the optimization and reward-component views:
+The individual run exports retain diagnostic detail:
 
-- [Optimization health: gradient norm, entropy, KL, advantage, group variance,
-  and step time](assets/training-curves/reward-v2/optimization_health.svg)
-- [Reward components: evidence coefficient, marginal evidence, and search
-  penalty](assets/training-curves/reward-v2/reward_components.svg)
+- [Vanilla GRPO overview](assets/training-curves/vanilla-grpo/training_overview.svg)
+  and [optimization health](assets/training-curves/vanilla-grpo/optimization_health.svg)
+- [Reward v2 overview](assets/training-curves/reward-v2/training_overview.svg),
+  [optimization health](assets/training-curves/reward-v2/optimization_health.svg),
+  and [reward components](assets/training-curves/reward-v2/reward_components.svg)
+- [Comparison metrics](assets/training-curves/grpo-comparison/metrics_long.csv)
+  and [plot manifest](assets/training-curves/grpo-comparison/plot_manifest.json)
 
-The exported [long-form metrics](assets/training-curves/reward-v2/metrics_long.csv)
-and [plot manifest](assets/training-curves/reward-v2/plot_manifest.json) make
-the figures auditable without publishing machine-specific paths.
+The CSV exports and sanitized manifests make every plotted point auditable
+without publishing machine-specific paths.
 
 These in-training validation curves use the 100-example strict validation
 split. The Natural Bridge-Hard results reported below remain the external
@@ -466,7 +468,7 @@ Complete experiment provenance and artifact hashes are recorded in
 | Agent runtime        | Native ToolAgentLoop + CanonicalToolAgentLoop |
 | Dataset              | HotpotQA multi-hop QA                         |
 | Evaluation           | Answer quality + search-policy behavior       |
-| Tests                | 107 unit/integration tests                    |
+| Tests                | 108 unit/integration tests                    |
 
 Upstream verl remains unmodified. Project-specific agent-loop and reward-manager
 integrations are isolated under
@@ -655,9 +657,11 @@ Call, observation feedback, and final answer.
 pip install -e ".[plot]"
 
 python scripts/plot_training_curves.py \
+  --run "Vanilla GRPO=/path/to/run/qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1" \
+  --log "Vanilla GRPO=/path/to/run/vanilla-grpo.log" \
   --run "Reward v2=/path/to/run/qwen8b_grpo_reward_v2_hotpot_mt_strict_2000_seed42" \
   --log "Reward v2=/path/to/run/train.log" \
-  --output-dir assets/training-curves/reward-v2 \
+  --output-dir assets/training-curves/grpo-comparison \
   --formats png svg
 ```
 

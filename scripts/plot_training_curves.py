@@ -17,6 +17,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from efficienttool_rl.evaluation.verl_analysis import analyze_verl_behavior
+
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 STEP = re.compile(r"(?:^|\s)step:(\d+)\s+-\s+")
 PAIR = re.compile(
@@ -118,6 +120,18 @@ def aggregate_jsonl(path: Path) -> dict[str, float]:
             output[f"{field}_std"] = math.sqrt(
                 sum((value - mean) ** 2 for value in values) / len(values)
             )
+
+    # Early Vanilla GRPO dumps predate the flattened search-counter fields,
+    # but preserve the complete model/tool transcript. Reuse the canonical
+    # analyzer to recover only metrics that are exactly observable without
+    # supporting-title metadata. Explicit newer fields remain authoritative.
+    if rows and all(
+        isinstance(row.get("output"), str) and isinstance(row.get("gts"), str)
+        for row in rows
+    ):
+        behavior = analyze_verl_behavior(rows)
+        output.setdefault("search_count", behavior["avg_executed_search_calls"])
+        output.setdefault("multi_search", behavior["multi_search_rate"])
 
     groups: dict[str, list[float]] = defaultdict(list)
     for row in rows:

@@ -1,0 +1,21 @@
+{
+  "runs": {
+    "Vanilla GRPO": {
+      "artifact": "qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1",
+      "console_logs": [
+        "qwen8b_grpo_hotpot_mt_strict_2000_seed42_retry1.launch.log"
+      ],
+      "train_steps": 63,
+      "validation_steps": 8
+    }
+  },
+  "smoothing_window": 5,
+  "outputs": [
+    "metrics_long.csv",
+    "training_overview.png",
+    "training_overview.svg",
+    "optimization_health.png",
+    "optimization_health.svg"
+  ],
+  "note": "Validation points are observed; missing checkpoints are not interpolated."
+}
