@@ -6,7 +6,7 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 
 ## Evaluation Comparison
 
-| Method | Training reward | EM | F1 | Completion | Invalid action | Searches | Multi-search | New-support hit | No-new-support |
+| Method | Training reward | EM | F1 | Completion | Invalid action | Searches | Multi-search | Support-hit | Non-support |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Qwen3-8B Base | — | 32.5% | 42.03% | 93.5% | 10.06% | 1.335 | 31.5% | 0.965 | 0.370 |
 | Vanilla GRPO, step 62 | task-only | 51.5% | 62.53% | 97.5% | 0.17% | 1.960 | 86.0% | 1.445 | 0.515 |
@@ -17,19 +17,19 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 
 Fresh DAPO was re-aggregated from 200 rows in the stored artifact family
 dapo_fresh62_nbh200/shard_{0,1,2}. Its average task reward is 0.3742,
-average turns 2.10, and new-support-hit rate 80.0%. Its lower absolute tool cost is not an improvement:
+average turns 2.10, and support-hit rate 80.0%. Its lower absolute tool cost is not an improvement:
 EM regresses 18.5 percentage points relative to vanilla GRPO.
 
 The composite-reward row was evaluated from the completed step-62 checkpoint
 on all 200 rows under the same seed-42 protocol. Its average task reward is
 0.5012, average turns 2.90, average generated length 47.52 tokens, and
-new-support-hit rate 66.31%. The evaluation artifact family is
+support-hit rate 66.31%. The evaluation artifact family is
 `grpo_composite_step62_nbh200_3090_20260912`.
 
 Reward v2 completed 62 optimizer updates and was evaluated from the merged
 step-62 checkpoint under the same seed-42 protocol. Its average task reward is
 0.5117, average turns 2.685, average generated length 45.59 tokens, and
-new-support-hit rate 74.63%. Search counts were 72 one-search, 121 two-search,
+support-hit rate 74.63%. Search counts were 72 one-search, 121 two-search,
 and 7 three-search trajectories; no episode used zero searches. The training
 artifact is `reward_v2_4090_4gpu_20260912_1100`, and the evaluation artifact is
 `reward_v2_step62_nbh200_3090_20260913`. The evaluation data fingerprint is
@@ -45,16 +45,16 @@ and `run_config.json`
 - Base tends to stop after one search and under-retrieves for many bridge
   questions.
 - Vanilla GRPO substantially improves task quality and moves the policy toward
-  multi-step retrieval. Both new-support hits and no-new-support calls increase.
+  multi-step retrieval. Both support hits and non-support calls increase.
 - Fresh DAPO is protocol-stable but one-search dominated. Its completed run did
   not apply effective overlong shaping because async prefilled scores bypassed
   that path.
 - Process-aware composite GRPO improves substantially over Base but underperforms
   task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also produces
-  fewer new-support hits and more no-new-support calls than task-only GRPO, so
+  fewer support hits and more non-support calls than task-only GRPO, so
   the current composite objective is not an efficiency improvement.
 - Reward v2 improves over Composite v1 by 0.5 EM and 1.58 F1 percentage points,
-  preserves the same new-support-hit count, and reduces no-new-support calls by
+  preserves the same support-hit count, and reduces non-support calls by
   0.210 per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points
   and retrieves less annotated supporting evidence, so it is not a Pareto
   improvement over the task-only baseline.
@@ -81,7 +81,7 @@ reports and methodology are in
 Each completed run must report:
 
 - EM, token F1, completion, and invalid-action rate;
-- attempted, valid, executed, new-support-hit, and no-new-support tool calls;
+- attempted, valid, executed, support-hit, and non-support tool calls;
 - turns, generated length, and search-count distribution;
 - reward/component distributions and zero-variance group ratio;
 - gradient norm, entropy, KL where enabled;
