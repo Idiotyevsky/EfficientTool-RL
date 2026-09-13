@@ -23,22 +23,28 @@ Natural Bridge-Hard, 200 held-out HotpotQA examples:
 | Multi-search ↑ | 31.5% | **86.0%** |
 | Invalid Action ↓ | 10.06% | **0.17%** |
 
-**GRPO improves both answer quality and search behavior:** the agent becomes
-substantially more willing to perform multi-hop retrieval while almost
-eliminating invalid actions.
+**GRPO improves both answer quality and search behavior:** the agent becomes substantially more willing to perform multi-hop retrieval while almost eliminating invalid actions.
 
-## Why Multi-turn Search RL?
+## Task Setting & Motivation
 
-A system may support repeated search while its policy always follows
-`search once → answer`. SearchAgent-RL distinguishes:
+The agent receives a complex question but cannot see the answer or the full corpus. It must acquire evidence through search, update its context with each observation, and decide whether to retrieve again or answer.
 
-- **Capability:** can the runtime execute another search?
-- **Necessity:** does the first observation leave required evidence unresolved?
-- **Behavior:** does the policy choose a useful next query?
+### Why Multi-turn Search?
 
-Top-1 retrieval creates genuine information demand for later turns. RL is
-trained on complete `search → observe → reason → search → answer` trajectories,
-not isolated responses.
+An illustrative bridge pattern contains an information dependency:
+
+```text
+Question: Which university did the author of Book X attend?
+Search 1: "Book X author"          → Alice Smith wrote Book X.
+Search 2: "Alice Smith university" → Alice Smith attended University Y.
+Answer: University Y
+```
+
+The second query depends on the first observation: $q_2=f(q,o_1)$. A single retrieval may reveal only the bridge entity, so the next retrieval must turn that entity into answer evidence. Top-1 retrieval makes this dependency visible instead of returning every supporting passage at once.
+
+### Why Reinforcement Learning?
+
+At turn $t$, the policy selects $\pi(a_t\mid q,h_t)$, where $a_t\in\{\operatorname{Search}(query),\operatorname{Answer}(text)\}$ and $h_t$ contains all previous actions and observations. Supervised examples can teach valid Tool Calling syntax; multi-turn search additionally requires sequential decisions: what to query, whether the evidence is sufficient, whether another retrieval is useful, and when to stop. GRPO learns from complete trajectories that express these choices jointly.
 
 ## Agent Loop
 
@@ -77,20 +83,11 @@ or:
 | Observation limit | 384 tokens |
 | Response trajectory limit | 1,024 tokens |
 
-A search observation is appended to context before the next policy decision.
-Malformed, mixed, unknown, or over-budget actions are logged and never silently
-executed. An episode terminates on a valid answer, turn/search exhaustion, or a
-native protocol violation. The project-local
-[`CanonicalToolAgentLoop`](src/efficienttool_rl/verl/canonical_agent_loop.py)
-keeps local evaluation and verl's native async `ToolAgentLoop` aligned without
-modifying upstream verl. Parser edge cases are covered in
-[`protocol.py`](src/efficienttool_rl/protocol.py).
+A search observation is appended to context before the next policy decision. Malformed, mixed, unknown, or over-budget actions are logged and never silently executed. An episode terminates on a valid answer, turn/search exhaustion, or a native protocol violation. The project-local [`CanonicalToolAgentLoop`](src/efficienttool_rl/verl/canonical_agent_loop.py) keeps local evaluation and verl's native async `ToolAgentLoop` aligned without modifying upstream verl. Parser edge cases are covered in [`protocol.py`](src/efficienttool_rl/protocol.py).
 
 ## Example: A Two-hop Search Trajectory
 
-This is a real successful Natural Bridge-Hard trajectory
-`5ae63dad55429929b0807afe__rollout_0`. Both searches retrieved a new gold
-supporting document.
+This is a real successful Natural Bridge-Hard trajectory `5ae63dad55429929b0807afe__rollout_0`. Both searches retrieved a new gold supporting document.
 
 ```text
 Question:
