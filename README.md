@@ -110,6 +110,17 @@ GRPO provides feedback at the trajectory level, allowing alternative
 search-and-answer strategies for the same question to compete against each
 other.
 
+### Deterministic Search Environment
+
+SearchAgent-RL uses a controlled **BM25 retrieval environment** built from the distractor passages associated with each HotpotQA example.
+
+For every search action, the agent issues a free-form query and receives the **top-1 BM25 passage** as its next observation. Retrieval is deterministic: the same query over the same example-level corpus always produces the same result.
+
+This design intentionally avoids search-engine stochasticity. It makes changes in behavior—such as query formulation, repeated search, multi-hop exploration, and stopping decisions—easier to attribute to the learned policy rather than to the retrieval backend.
+
+The current setup is therefore a **controlled multi-hop search testbed**, not an open-web search environment.
+
+
 ---
 
 ## Agent Loop
