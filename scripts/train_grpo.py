@@ -22,6 +22,10 @@ from efficienttool_rl.verl.json_compat import (
     patch_ray_trainer_json_dump,
     patch_tool_agent_chat_template_defaults,
 )
+from efficienttool_rl.verl.reward_v2_runtime import (
+    is_reward_v2_config,
+    patch_reward_v2_runtime,
+)
 from verl.trainer.main_ppo import TaskRunner, run_ppo
 
 
@@ -31,6 +35,8 @@ class EfficientToolTaskRunner(TaskRunner):
     def run(self, config):
         patch_ray_trainer_json_dump()
         patch_tool_agent_chat_template_defaults()
+        if is_reward_v2_config(config):
+            patch_reward_v2_runtime()
         return super().run(config)
 
 

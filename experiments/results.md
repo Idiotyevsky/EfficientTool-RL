@@ -12,6 +12,7 @@ rows with `type=bridge`, `level=hard`, and no strict candidate filter.
 | Vanilla GRPO, step 62 | task-only | 51.5% | 62.53% | 97.5% | 0.17% | 1.960 | 86.0% | 1.445 | 0.515 |
 | Fresh DAPO, step 62 | task-only | 33.0% | 41.83% | 100% | 0% | 1.100 | 10.0% | 0.880 | 0.220 |
 | GRPO + composite reward, step 62 | 0.8 / 0.15 / 0.05 | 45.0% | 55.25% | 98.0% | 0.52% | 1.885 | 77.5% | 1.250 | 0.635 |
+| GRPO + Reward v2, step 62 | answer + annealed marginal evidence - gated waste | 45.5% | 56.83% | 99.0% | 0.37% | 1.675 | 64.0% | 1.250 | 0.425 |
 | Corrected assistant-only DAPO | task + overlong | in progress | in progress | in progress | in progress | in progress | in progress | in progress | in progress |
 
 Fresh DAPO was re-aggregated from 200 rows in the stored artifact family
@@ -24,6 +25,20 @@ on all 200 rows under the same seed-42 protocol. Its average task reward is
 0.5012, average turns 2.90, average generated length 47.52 tokens, and
 useful/executed ratio 66.31%. The evaluation artifact family is
 `grpo_composite_step62_nbh200_3090_20260912`.
+
+Reward v2 completed 62 optimizer updates and was evaluated from the merged
+step-62 checkpoint under the same seed-42 protocol. Its average task reward is
+0.5117, average turns 2.685, average generated length 45.59 tokens, and
+useful/executed ratio 74.63%. Search counts were 72 one-search, 121 two-search,
+and 7 three-search trajectories; no episode used zero searches. The training
+artifact is `reward_v2_4090_4gpu_20260912_1100`, and the evaluation artifact is
+`reward_v2_step62_nbh200_3090_20260913`. The held-out data fingerprint is
+`1835707b46734751610d42a6f5ebba8bb3098789f841fede1c88a63b3cbf5fdc`.
+Artifact SHA-256: `trajectories.jsonl`
+`92f58a6fc5fd56c0a06384c9338aa6c9a739df172ecbb0dc22f392be3e53848b`,
+`metrics.json` `2d40f2dc8364f0abbfd0936b4ada3392913fd08ee169ec8630aa43cd709e7471`,
+and `run_config.json`
+`b2e09d89f90a262cdb8b79dddfe5372dd6ed2321f3e6b5298a3df26a75635a2f`.
 
 ## Interpretation
 
@@ -38,6 +53,11 @@ useful/executed ratio 66.31%. The evaluation artifact family is
   task-only GRPO by 6.5 EM and 7.28 F1 percentage points. It also produces
   fewer useful searches and more wasted searches than task-only GRPO, so the
   current composite objective is not an efficiency improvement.
+- Reward v2 improves over Composite v1 by 0.5 EM and 1.58 F1 percentage points,
+  preserves the same useful-search count, and reduces wasted search by 0.210
+  per episode. It still trails task-only GRPO by 6.0 EM and 5.70 F1 points and
+  retrieves less useful evidence, so it is not a Pareto improvement over the
+  task-only baseline.
 - The corrected assistant-only DAPO experiment is needed before drawing a
   causal conclusion about overlong shaping.
 

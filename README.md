@@ -283,12 +283,44 @@ positive correlation with exact match while answer reward retained the largest
 share of total reward. See the
 [composite reward pilot](analysis/composite_reward_pilot/README.md).
 
+### Reward v2: Marginal Evidence and Weak Waste Regularization
+
+Reward v2 keeps answer quality as the primary objective, anneals retrieval
+guidance away over training, and applies only a weak success-gated penalty to
+wasted searches:
+
+$$
+R = R_{\text{answer}}
+  + \beta_t R_{\text{marginal-evidence}}
+  - \lambda R_{\text{answer}}N_{\text{wasted}},
+\qquad
+\beta_t: 0.10\rightarrow0,
+\quad \lambda=0.02.
+$$
+
+For each executed search, evidence gain is the increase in unique gold
+supporting-title coverage. A title can contribute only once, so duplicate and
+irrelevant retrievals receive zero marginal gain. The evidence coefficient is
+linearly annealed by optimizer step, not by agent turn. The waste term is
+multiplied by answer reward: a completely wrong trajectory cannot gain an
+advantage merely by searching less.
+
+The implementation uses a trajectory-level accumulated evidence reward because
+stock GRPO consumes sequence-level outcome rewards. Its scalar reward is placed
+on the final assistant-generated token through `response_mask`; tool observation
+tokens receive no policy reward. Reward v2 adds no format bonus. See the
+[reward implementation](src/efficienttool_rl/rewards/reward_v2.py),
+[verl manager](src/efficienttool_rl/verl/reward_managers/reward_v2.py), and
+[training config](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
+
 ### Reward-hacking Safeguards
 
 - Gold answers and supporting titles are reward/evaluation metadata only; they
   never enter model-visible context or tool kwargs.
 - Evidence coverage is duplicate-insensitive and saturating.
 - Answer quality keeps 80% of the composite objective.
+- Reward v2 never rewards fewer calls directly and gates its waste penalty by
+  answer quality.
 - Component distributions are audited offline before RL.
 - Task quality and tool behavior are reported together; fewer calls are never
   called an improvement when answer quality collapses.
@@ -304,6 +336,7 @@ All values were recomputed from stored trajectories on the same
 |---|---:|---:|
 | Qwen3-8B Base | 32.5% | 42.03% |
 | Vanilla GRPO, step 62 | **51.5%** | **62.53%** |
+| Reward v2 GRPO, step 62 | 45.5% | 56.83% |
 | Composite-reward GRPO, step 62 | 45.0% | 55.25% |
 | Fresh DAPO, step 62 | 33.0% | 41.83% |
 
@@ -313,6 +346,7 @@ All values were recomputed from stored trajectories on the same
 |---|---:|---:|---:|---:|
 | Qwen3-8B Base | 1.335 | 31.5% | 0.965 | 0.370 |
 | Vanilla GRPO, step 62 | 1.960 | 86.0% | 1.445 | 0.515 |
+| Reward v2 GRPO, step 62 | 1.675 | 64.0% | 1.250 | 0.425 |
 | Composite-reward GRPO, step 62 | 1.885 | 77.5% | 1.250 | 0.635 |
 | Fresh DAPO, step 62 | 1.100 | 10.0% | 0.880 | 0.220 |
 
@@ -322,6 +356,13 @@ turns. Composite-reward GRPO reached 98.0% completion, 0.52% invalid actions,
 and 66.31% tool efficiency. It remains stronger than Base but does not exceed
 task-only GRPO: useful retrieval falls while wasted retrieval rises. Full
 provenance is in [experiments/results.md](experiments/results.md).
+
+Reward v2 reached 99.0% completion, 0.37% invalid actions, and 74.63% tool
+efficiency. Relative to Composite v1, it improves EM/F1, preserves 1.250 useful
+searches per episode, and reduces wasted searches from 0.635 to 0.425. Relative
+to task-only GRPO, however, both useful retrieval and task quality fall. Reward
+v2 is therefore a better process-aware objective than Composite v1 in this run,
+but not a Pareto improvement over the task-only baseline.
 
 ## Case Study: DAPO's One-search Collapse
 

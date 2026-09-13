@@ -8,6 +8,7 @@ Recipe-level comparison and diagnosis for a Qwen3-8B multi-turn search agent.
 Qwen3-8B Base
   → Vanilla GRPO, task reward                [completed and evaluated]
   → GRPO, process-aware composite reward    [completed and evaluated]
+  → GRPO, Reward v2                         [completed and evaluated]
   → Fresh DAPO, task reward                 [completed and evaluated]
   → Corrected assistant-only DAPO           [pending]
 ```
@@ -69,6 +70,31 @@ quality, but it does not outperform task-only GRPO. Relative to task-only
 GRPO, it retrieves less useful evidence and performs more wasted searches.
 This result does not support the current composite reward as an improvement.
 
+### Reward v2 GRPO
+
+Reward v2 uses the trajectory-level objective
+`answer + beta(step) * marginal evidence - 0.02 * answer * wasted`, with beta
+linearly annealed from 0.10 to 0 over 62 optimizer updates. Natural Bridge-Hard,
+200 examples:
+
+- EM: 45.5%
+- F1: 56.83%
+- completion: 99.0%
+- invalid action rate: 0.37%
+- searches: 1.675
+- multi-search: 64.0%
+- useful/wasted: 1.250 / 0.425
+- useful/executed: 74.63%
+- average task reward: 0.5117
+- average turns: 2.685
+- average generated length: 45.59 tokens
+- search distribution: 72 one-search / 121 two-search / 7 three-search
+
+Reward v2 is stronger than Composite v1 while using fewer searches: useful
+retrieval is preserved and wasted retrieval decreases. It still underperforms
+task-only GRPO and retrieves less useful evidence, so it is not accepted as a
+Pareto improvement over the task-only baseline.
+
 ### Reward and Infrastructure Validation
 
 - Process-aware reward implemented as
@@ -78,7 +104,7 @@ This result does not support the current composite reward as an improvement.
 - Project-local assistant-only DAPO reward manager uses the response mask for
   generated-token length and logs assistant length, total trajectory length,
   penalty, and search count.
-- 91 unit/integration tests passed at the last full validation.
+- 104 unit/integration tests passed in the latest full validation.
 
 ## Pending Experiment
 
@@ -89,8 +115,8 @@ corrected ablation is finished and evaluated.
 
 ## Next Actions
 
-1. Inspect composite-reward failures and reward-component dynamics to explain
-   the useful-search regression and wasted-search increase.
+1. Compare Reward v2 and task-only GRPO failures to identify where reduced
+   retrieval changes answer quality.
 2. Complete and evaluate corrected assistant-only DAPO when resources permit.
 3. Compare task quality, protocol reliability, search distribution,
    useful/wasted retrieval, and generated length.
