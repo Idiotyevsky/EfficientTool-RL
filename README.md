@@ -455,7 +455,13 @@ experiment table.
 
 ---
 
-## Quick Start
+## Getting Started
+
+The shortest path to a training run is: install the project, prepare Qwen3-8B,
+materialize HotpotQA, launch Vanilla GRPO, and evaluate the resulting
+checkpoint.
+
+### 1. Prepare the environment
 
 ```bash
 git clone https://github.com/Idiotyevsky/EfficientTool-RL.git SearchAgent-RL
@@ -463,46 +469,111 @@ cd SearchAgent-RL
 
 python -m venv .venv
 source .venv/bin/activate
-
-pip install -e ".[test]"
-PYTHONPATH=src python examples/01_tool_calling.py
+pip install -e ".[data,hf,rl]"
 ```
 
-The CPU smoke test exercises the real parser and BM25 search environment without
-requiring a model download or a full RL training run.
+The training path additionally requires a compatible verl, vLLM, PyTorch, and
+CUDA installation. See the exact tested versions in
+[`docs/environment_report.md`](docs/environment_report.md) before installing the
+GPU stack.
 
-For the validated GPU stack, see
-[`docs/environment_report.md`](docs/environment_report.md).
+### 2. Prepare Qwen3-8B
 
----
+SearchAgent-RL uses a local Hugging Face-format **Qwen3-8B** checkpoint that
+must be loadable by both Transformers and vLLM:
 
-## Training & Evaluation
+```bash
+export ETRL_MODEL=/path/to/Qwen3-8B
+hf download Qwen/Qwen3-8B --local-dir "$ETRL_MODEL"
+```
 
-Set the required paths:
+Skip the download command when the checkpoint already exists locally; set
+`ETRL_MODEL` to that directory instead.
+
+### 3. Prepare HotpotQA
+
+First download and normalize the official distractor splits:
+
+```bash
+export ETRL_DATA_DIR="$PWD/data/processed"
+mkdir -p "$ETRL_DATA_DIR"
+
+python scripts/prepare_hotpotqa.py \
+  --split train \
+  --output-dir "$ETRL_DATA_DIR"
+
+python scripts/prepare_hotpotqa.py \
+  --split validation \
+  --output-dir "$ETRL_DATA_DIR"
+```
+
+Then create the exact training and evaluation artifacts used by this project:
+
+```bash
+python scripts/prepare_verl_hotpotqa.py \
+  --input "$ETRL_DATA_DIR/hotpotqa_distractor_train.jsonl" \
+  --output "$ETRL_DATA_DIR/verl_hotpotqa_mt_strict_train_2000.parquet" \
+  --split train \
+  --limit 2000 \
+  --question-type bridge \
+  --levels medium hard \
+  --require-two-hop \
+  --max-observation-tokens 384 \
+  --max-top-k 1 \
+  --max-executed-search-calls 3 \
+  --data-source hotpotqa_multi_turn_strict
+
+python scripts/prepare_verl_hotpotqa.py \
+  --input "$ETRL_DATA_DIR/hotpotqa_distractor_validation.jsonl" \
+  --output "$ETRL_DATA_DIR/verl_hotpotqa_mt_strict_val_100.parquet" \
+  --split validation \
+  --limit 100 \
+  --question-type bridge \
+  --levels hard \
+  --require-two-hop \
+  --max-observation-tokens 384 \
+  --max-top-k 1 \
+  --max-executed-search-calls 3 \
+  --data-source hotpotqa_multi_turn_strict
+
+python scripts/prepare_verl_hotpotqa.py \
+  --input "$ETRL_DATA_DIR/hotpotqa_distractor_validation.jsonl" \
+  --output "$ETRL_DATA_DIR/verl_hotpotqa_mt_natural_bridge_hard_val_200.parquet" \
+  --split validation \
+  --limit 200 \
+  --question-type bridge \
+  --levels hard \
+  --max-observation-tokens 384 \
+  --max-top-k 1 \
+  --max-executed-search-calls 3 \
+  --data-source hotpotqa_natural_bridge_hard
+```
+
+The directory should now contain these three experiment inputs and a manifest
+for each one:
+
+```text
+data/processed/
+├── verl_hotpotqa_mt_strict_train_2000.parquet
+├── verl_hotpotqa_mt_strict_val_100.parquet
+└── verl_hotpotqa_mt_natural_bridge_hard_val_200.parquet
+```
+
+### 4. Train Vanilla GRPO
 
 ```bash
 export VERL_CONFIG_PATH=/path/to/verl/verl/trainer/config
 export ETRL_ROOT="$PWD"
-export ETRL_MODEL=/path/to/Qwen3-8B
-export ETRL_DATA_DIR=/path/to/prepared/parquet
 export ETRL_RUN_DIR=/path/to/run-output
-```
 
-### Vanilla GRPO
-
-```bash
 python scripts/train_grpo.py \
   --config-name qwen8b_hotpot_mt_strict
 ```
 
-### GRPO + Reward v2
+The config reads `ETRL_MODEL` and `ETRL_DATA_DIR` from the earlier steps. Use a
+new `ETRL_RUN_DIR` to avoid mixing outputs from different runs.
 
-```bash
-python scripts/train_grpo.py \
-  --config-name qwen8b_hotpot_reward_v2
-```
-
-### Evaluation
+### 5. Evaluate
 
 ```bash
 python scripts/evaluate.py \
@@ -520,6 +591,31 @@ python scripts/evaluate.py \
 
 Methods should be compared under identical search budgets and evaluation
 settings.
+
+---
+
+## Development & Validation
+
+Development checks are separate from the user-facing training path:
+
+```bash
+pip install -e ".[test]"
+
+# CPU-only parser and BM25 smoke; no model download required
+PYTHONPATH=src python examples/01_tool_calling.py
+
+# Full suite; requires the validated verl environment
+pytest -q
+
+# Model-backed AgentRunner smoke
+python scripts/smoke_agent_episode.py \
+  --model "$ETRL_MODEL" \
+  --device cuda:0
+```
+
+The CPU example validates the action parser and search tool. The full suite also
+covers verl adapters, while the model-backed smoke verifies a generated Tool
+Call, observation feedback, and final answer.
 
 ---
 
