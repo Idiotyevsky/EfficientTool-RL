@@ -1,40 +1,44 @@
-# ToolAgentLab
+<p align="center"><img src="assets/logo.svg" width="88" alt="SearchAgent-RL logo"></p>
 
-> **A reproducible testbed for training and diagnosing multi-turn tool agents with reinforcement learning.**
+<h1 align="center">SearchAgent-RL</h1>
 
-ToolAgentLab trains a Qwen3-8B policy to search a deterministic local corpus,
-reason across observations, and answer multi-hop questions. It connects a
-strict action protocol to native multi-turn rollouts in verl/vLLM, then compares
-how GRPO and DAPO change task quality and agent behavior.
+<p align="center"><strong>Reinforcement Learning for Multi-turn Search Agents</strong></p>
 
-The public name is **ToolAgentLab**. The Python package remains
-`efficienttool_rl` so existing imports, configs, checkpoints, and artifacts
-stay compatible.
+<p align="center">Training Qwen3-8B to search, reason, and answer through multi-turn interaction with GRPO, process-aware rewards, and behavioral evaluation.</p>
 
-## Overview
+<p align="center"><img alt="Qwen3-8B" src="https://img.shields.io/badge/Model-Qwen3--8B-4f46e5"> <img alt="GRPO" src="https://img.shields.io/badge/RL-GRPO-0891b2"> <img alt="verl" src="https://img.shields.io/badge/Training-verl-334155"> <img alt="vLLM" src="https://img.shields.io/badge/Rollout-vLLM-334155"> <img alt="Tests" src="https://img.shields.io/badge/tests-104%20passed-16a34a"></p>
 
-```text
-HotpotQA question → Qwen3-8B tool agent → multi-turn BM25 interaction
-                  → trajectory reward → grouped RL → policy update
-                  → held-out task and behavior evaluation
-```
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"><source media="(prefers-color-scheme: light)" srcset="assets/hero-light.svg"><img alt="SearchAgent-RL interaction and reinforcement-learning pipeline" src="assets/hero-light.svg"></picture>
 
-Every policy is measured with EM/F1, completion, protocol validity, turns, and
-attempted/valid/executed/useful/wasted tool calls.
+SearchAgent-RL trains Qwen3-8B for multi-hop QA through multi-turn search, then evaluates answer quality alongside exploration depth, useful/wasted retrieval, and protocol validity. The stack uses verl, vLLM, FSDP, and a strict search-agent loop.
 
-## Why Multi-turn Tool RL?
+## Results at a Glance
 
-A model can support tools without learning when to use them. A loop can permit
-five turns while the policy always follows `search once → answer`. ToolAgentLab
-separates:
+Natural Bridge-Hard, 200 held-out HotpotQA examples:
 
-1. **Capability:** can the runtime execute another action?
-2. **Necessity:** does one search leave required information unresolved?
-3. **Behavior:** does the policy choose a useful next search?
+| Metric | Base | Vanilla GRPO |
+|---|---:|---:|
+| EM ↑ | 32.5% | **51.5%** |
+| F1 ↑ | 42.03% | **62.53%** |
+| Multi-search ↑ | 31.5% | **86.0%** |
+| Invalid Action ↓ | 10.06% | **0.17%** |
 
-The controlled environment returns one passage per search, allowing one
-observation to reveal the entity needed for the next query. RL is trained and
-diagnosed on complete search-and-answer trajectories, not isolated responses.
+**GRPO improves both answer quality and search behavior:** the agent becomes
+substantially more willing to perform multi-hop retrieval while almost
+eliminating invalid actions.
+
+## Why Multi-turn Search RL?
+
+A system may support repeated search while its policy always follows
+`search once → answer`. SearchAgent-RL distinguishes:
+
+- **Capability:** can the runtime execute another search?
+- **Necessity:** does the first observation leave required evidence unresolved?
+- **Behavior:** does the policy choose a useful next query?
+
+Top-1 retrieval creates genuine information demand for later turns. RL is
+trained on complete `search → observe → reason → search → answer` trajectories,
+not isolated responses.
 
 ## Agent Loop
 
@@ -42,21 +46,13 @@ diagnosed on complete search-and-answer trajectories, not isolated responses.
 flowchart TD
     Q[Question] --> P[Qwen3-8B Policy]
     P --> A{Exactly one action}
-    A -->|search| C[CanonicalToolAgentLoop]
-    C --> B[Deterministic BM25 Tool]
-    B --> O[Observation: top-1 passage]
+    A -->|Search| C[CanonicalToolAgentLoop]
+    C --> B[Deterministic BM25]
+    B --> O[Top-1 Observation]
     O --> P
-    A -->|answer| F[Final Answer]
-    A -->|invalid| X[Record failure / stop native rollout]
+    A -->|Answer| F[Final Answer]
+    A -->|Invalid| X[Record and terminate]
 ```
-
-The project-local
-[`CanonicalToolAgentLoop`](src/efficienttool_rl/verl/canonical_agent_loop.py)
-adapts verl's native async `ToolAgentLoop` to the strict parser used in local
-evaluation. verl still owns generation, tool execution, response masks, and
-rollout orchestration; upstream source is not modified.
-
-### Action Space
 
 Each assistant turn emits exactly one action:
 
@@ -72,350 +68,202 @@ or:
 <answer>7 January 1936</answer>
 ```
 
-The [parser](src/efficienttool_rl/protocol.py) rejects missing or multiple
-blocks, malformed tags/JSON, missing arguments, and invalid argument types.
-Unknown tools are never executed.
-
-### Interaction Protocol
-
-| Constraint | Current value |
+| Constraint | Value |
 |---|---:|
 | Maximum assistant turns | 5 |
-| Maximum user/tool-response turns | 5 |
-| Maximum parallel calls per turn | 1 |
 | Maximum executed searches | 3 |
+| Parallel calls per turn | 1 |
 | Results per search | 1 |
-| Maximum observation length | 384 tokens |
-| Maximum response trajectory | 1,024 tokens |
+| Observation limit | 384 tokens |
+| Response trajectory limit | 1,024 tokens |
 
-A valid search observation is appended to the context and feeds the next
-policy decision. During native training, an invalid or mixed action terminates
-the rollout without silently executing another call. Local evaluation records
-an error observation so the failure stays inspectable. Both paths log malformed
-output rather than crashing.
+A search observation is appended to context before the next policy decision.
+Malformed, mixed, unknown, or over-budget actions are logged and never silently
+executed. An episode terminates on a valid answer, turn/search exhaustion, or a
+native protocol violation. The project-local
+[`CanonicalToolAgentLoop`](src/efficienttool_rl/verl/canonical_agent_loop.py)
+keeps local evaluation and verl's native async `ToolAgentLoop` aligned without
+modifying upstream verl. Parser edge cases are covered in
+[`protocol.py`](src/efficienttool_rl/protocol.py).
 
-### Episode Lifecycle
-
-An episode ends on a valid `<answer>`, five assistant turns, an exhausted
-three-search budget, or a native protocol violation. Its trajectory preserves
-all actions, observations, execution decisions, the answer, and termination
-reason.
-
-## Task & Dataset
-
-### HotpotQA
-
-Training uses **Hotpot-MT Strict**, a controlled HotpotQA distractor-derived
-split: bridge-oriented questions, deterministic per-example BM25, top-1
-retrieval, bounded observations, and a three-search budget. This is a
-multi-turn stress test, not the unmodified HotpotQA benchmark.
-
-### A Multi-hop Example
+## Example: A Two-hop Search Trajectory
 
 This is a real successful Natural Bridge-Hard trajectory
-(`5ae63dad55429929b0807afe__rollout_0`, Fresh DAPO evaluation). Both calls
-retrieved a new gold supporting document.
+`5ae63dad55429929b0807afe__rollout_0`. Both searches retrieved a new gold
+supporting document.
 
-**Question**
+```text
+Question:
+When was the British author who wrote the novel on which
+"Here We Go Round the Mulberry Bush" was based born?
 
-> When was the British author who wrote the novel on which "Here We Go Round
-> the Mulberry Bush" was based born?
+Turn 1 — Search:
+British author novel Here We Go Round the Mulberry Bush
 
-**Turn 1**
+Observation 1 — Here We Go Round the Mulberry Bush (film):
+The 1967 British film was based on the novel of the same name
+by Hunter Davies.
 
-```xml
-<tool_call>
-{"name":"search","arguments":{"query":"British author novel Here We Go Round the Mulberry Bush"}}
-</tool_call>
-```
+Turn 2 — Search:
+Hunter Davies born
 
-**Observation 1 — _Here We Go Round the Mulberry Bush (film)_**
+Observation 2 — Hunter Davies:
+Edward Hunter Davies, OBE (born 7 January 1936) is a British author,
+journalist and broadcaster.
 
-> The 1967 British film was based on the novel of the same name by Hunter
-> Davies.
-
-The bridge entity is now known, but the birth date is not.
-
-**Turn 2**
-
-```xml
-<tool_call>
-{"name":"search","arguments":{"query":"Hunter Davies born"}}
-</tool_call>
-```
-
-**Observation 2 — _Hunter Davies_**
-
-> Edward Hunter Davies, OBE (born 7 January 1936) is a British author,
-> journalist and broadcaster.
-
-**Final**
-
-```xml
+Final Answer:
 <answer>7 January 1936</answer>
 ```
 
-The second query depends on an entity revealed by the first observation:
-genuine multi-turn retrieval rather than repeated single-turn QA.
-
-### Natural Bridge-Hard Evaluation
-
-The held-out comparison uses 200 official validation rows with `type=bridge`
-and `level=hard`, without the strict question-level filter. Every method uses
-identical top-1 retrieval, 384-token observations, three-search and five-turn
-limits. The parquet fingerprint is in
-[the baseline report](experiments/baselines.md).
+The second query depends on the bridge entity revealed by the first retrieval,
+which makes this a genuine multi-turn search problem.
 
 ## Agentic RL Pipeline
 
 ```mermaid
 flowchart LR
-    P[Question] --> R[4 grouped agent rollouts]
+    P[Question] --> R[4 grouped rollouts]
     R --> T[Multi-turn trajectories]
-    T --> W[Trajectory-level rewards]
+    T --> W[Trajectory rewards]
     W --> A[Group-relative advantages]
-    A --> L[GRPO / DAPO objective]
-    L --> U[Policy update]
+    A --> L[GRPO objective]
+    L --> U[Qwen3-8B policy update]
 ```
 
-One rollout contains the complete interaction:
+With 32 questions and group size 4, an update samples 128 complete agent
+trajectories. Reward is trajectory-level and each rollout may include multiple
+assistant actions and tool observations.
 
-```text
-reason → search → observation → reason → search → observation → answer
-```
+## Reinforcement Learning with GRPO
 
-With batch size 32 and group size 4, one update begins with 32 questions and
-samples 128 trajectories before filtering or optimization.
-
-## Reinforcement Learning
-
-### Vanilla GRPO
-
-For one question, GRPO samples a group:
+For each question, GRPO samples grouped trajectories:
 
 $$
-\{\tau_1,\ldots,\tau_G\}\sim\pi_\theta, \qquad G=4.
+\{\tau_1,\ldots,\tau_G\}\sim\pi_\theta,\qquad G=4.
 $$
 
-Trajectory rewards are normalized within that group:
+It converts their rewards into group-relative advantages:
 
 $$
 A_i=\frac{R_i-\mu_R}{\sigma_R+\epsilon}.
 $$
 
-Above-average trajectories receive positive advantage; below-average ones
-receive negative advantage. The clipped objective increases the probability of
-better search-and-answer behavior without a learned critic. The baseline also
-uses an actor KL loss of `0.001`.
+Better-than-group search-and-answer trajectories receive positive advantage;
+worse ones receive negative advantage. The policy is updated with a clipped
+objective and an actor KL coefficient of `0.001`, without a learned critic.
+The 2,000-prompt baseline completed 62 optimizer updates. Its zero-variance
+group ratio was 0.684, yet it still produced substantial held-out gains.
 
-The 2,000-prompt run reached a **0.684 zero-variance group ratio**: roughly two
-thirds of sampled groups carried no relative signal. Despite this sparsity, the
-completed run substantially improved held-out EM and F1.
+See the exact [GRPO config](configs/grpo/qwen8b_hotpot_mt_strict.yaml).
 
-### DAPO
-
-DAPO is evaluated as a modified GRPO recipe, not a method that must be better:
-
-- **Dynamic Sampling:** replace zero-variance groups until the effective batch
-  is filled, with a bounded retry cap.
-- **Clip-Higher:** asymmetric clipping (0.20 lower, 0.28 upper).
-- **Token-level PG Loss:** `token-mean` aggregation.
-- **Overlong Reward Shaping:** a soft penalty in the last 256 tokens of the
-  1,024-token response budget.
-
-Tool observations are environment output, not policy actions. The corrected
-project-local DAPO manager measures overlong length from the assistant
-`response_mask` only; it does not alter policy-loss masks or upstream verl.
-The completed **Fresh DAPO** result predates this correction: async prefilled
-scores bypassed overlong shaping, so it is a DAPO-recipe result without an
-effective overlong term.
-
-### GRPO vs DAPO
-
-| Setting | Vanilla GRPO | Fresh DAPO |
-|---|---:|---:|
-| Group size | 4 | 4 |
-| Train batch | 32 prompts | 32 effective prompts |
-| Dynamic variance filtering | No | Yes; max 30 generation batches |
-| Policy clip | verl default | low 0.20 / high 0.28 |
-| Loss aggregation | verl default | token-mean |
-| Actor KL loss | 0.001 | disabled |
-| Nominal overlong buffer | disabled | 256 tokens; factor 1.0 |
-| Temperature / top-p | 0.8 / 0.95 | 0.8 / 0.95 |
-| Learning rate / seed | 1e-6 / 42 | 1e-6 / 42 |
-| Optimizer updates | 62 | 62 |
-
-Both recipes share the model, task, protocol, rollout engine, search
-environment, and evaluator. See the exact
-[GRPO config](configs/grpo/qwen8b_hotpot_mt_strict.yaml) and
-[DAPO config](configs/dapo/qwen8b_hotpot_mt_strict.yaml).
-
-## Reward Design
+## Reward Engineering
 
 ### Task Reward
 
-Vanilla GRPO and Fresh DAPO use:
+Final-answer correctness remains the primary optimization objective:
 
 $$
-R_{\text{task}}=0.5\,EM+0.5\,F1.
+R_{\text{answer}}=0.5\,EM+0.5\,F1.
 $$
 
-An output without exactly one valid terminal `<answer>` receives zero. The
-reward supervises the final answer, not retrieval quality.
+Outputs without exactly one valid terminal `<answer>` receive zero.
 
-### Process-aware Composite Reward
+### Reward v2
 
-The implemented objective is:
-
-$$
-R=0.8R_{\text{answer}}+0.15R_{\text{evidence}}+0.05R_{\text{format}}.
-$$
-
-- **Answer:** the same `0.5 EM + 0.5 F1` score.
-- **Evidence coverage:** the fraction of unique gold supporting-document titles
-  returned by successful searches, capped at 1.
-- **Format:** the mean of three binary checks—a valid terminal answer, no
-  malformed/unknown calls, and termination with the answer.
-
-Gold and retrieved titles are sets, so repeating retrieval cannot accumulate
-evidence reward. Offline replay confirmed non-zero evidence variance and
-positive correlation with exact match while answer reward retained the largest
-share of total reward. See the
-[composite reward pilot](analysis/composite_reward_pilot/README.md).
-
-### Reward v2: Marginal Evidence and Weak Waste Regularization
-
-Reward v2 keeps answer quality as the primary objective, anneals retrieval
-guidance away over training, and applies only a weak success-gated penalty to
-wasted searches:
+The current process-aware objective is:
 
 $$
-R = R_{\text{answer}}
-  + \beta_t R_{\text{marginal-evidence}}
-  - \lambda R_{\text{answer}}N_{\text{wasted}},
-\qquad
-\beta_t: 0.10\rightarrow0,
-\quad \lambda=0.02.
+R=R_{\text{answer}}
+ +\beta_tR_{\text{marginal-evidence}}
+ -\lambda R_{\text{answer}}N_{\text{wasted}},
+\quad \beta_t:0.10\rightarrow0,\quad\lambda=0.02.
 $$
 
-For each executed search, evidence gain is the increase in unique gold
-supporting-title coverage. A title can contribute only once, so duplicate and
-irrelevant retrievals receive zero marginal gain. The evidence coefficient is
-linearly annealed by optimizer step, not by agent turn. The waste term is
-multiplied by answer reward: a completely wrong trajectory cannot gain an
-advantage merely by searching less.
+- **Marginal evidence:** each search receives credit only for newly covered
+  gold supporting evidence; duplicate and irrelevant retrievals add zero.
+- **Annealing:** evidence weight decays by global optimizer progress, returning
+  training toward answer-only optimization.
+- **Success-gated waste:** wasted searches are weakly penalized in proportion
+  to answer quality, so premature stopping is never rewarded.
 
-The implementation uses a trajectory-level accumulated evidence reward because
-stock GRPO consumes sequence-level outcome rewards. Its scalar reward is placed
-on the final assistant-generated token through `response_mask`; tool observation
-tokens receive no policy reward. Reward v2 adds no format bonus. See the
-[reward implementation](src/efficienttool_rl/rewards/reward_v2.py),
-[verl manager](src/efficienttool_rl/verl/reward_managers/reward_v2.py), and
-[training config](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
+The accumulated evidence term is trajectory-level; tool-observation tokens
+receive no policy reward. Reward v2 is a **performance–tool-cost trade-off, not
+a Pareto improvement** over task-only GRPO. See the
+[implementation](src/efficienttool_rl/rewards/reward_v2.py) and
+[config](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
 
-### Reward-hacking Safeguards
+### Reward Evolution
 
-- Gold answers and supporting titles are reward/evaluation metadata only; they
-  never enter model-visible context or tool kwargs.
-- Evidence coverage is duplicate-insensitive and saturating.
-- Answer quality keeps 80% of the composite objective.
-- Reward v2 never rewards fewer calls directly and gates its waste penalty by
-  answer quality.
-- Component distributions are audited offline before RL.
-- Task quality and tool behavior are reported together; fewer calls are never
-  called an improvement when answer quality collapses.
+| Version | Design | Observed result |
+|---|---|---|
+| Composite v1 | Answer + final evidence coverage + format | Better than Base, but more wasted retrieval than task-only GRPO |
+| Reward v2 | Marginal evidence + annealing + success-gated waste | Better than v1 with fewer wasted searches; still below task-only GRPO on EM/F1 |
 
-## Results
+Safeguards remain simple: gold metadata never enters model-visible context;
+duplicate evidence cannot accumulate reward repeatedly; answer correctness
+stays primary; task quality and search behavior are evaluated separately.
+The offline v1 audit is in
+[`analysis/composite_reward_pilot`](analysis/composite_reward_pilot/README.md).
 
-All values were recomputed from stored trajectories on the same
-**Natural Bridge-Hard 200-example held-out evaluation**.
+## Evaluation Results
+
+All rows use the same 200-example Natural Bridge-Hard protocol: official
+HotpotQA validation questions with `type=bridge`, `level=hard`, top-1 BM25,
+384-token observations, and identical search/turn budgets.
 
 ### Task Quality
 
-| Method | EM | F1 |
+| Method | EM ↑ | F1 ↑ |
 |---|---:|---:|
-| Qwen3-8B Base | 32.5% | 42.03% |
-| Vanilla GRPO, step 62 | **51.5%** | **62.53%** |
-| Reward v2 GRPO, step 62 | 45.5% | 56.83% |
-| Composite-reward GRPO, step 62 | 45.0% | 55.25% |
-| Fresh DAPO, step 62 | 33.0% | 41.83% |
+| Base | 32.5% | 42.03% |
+| **Vanilla GRPO** | **51.5%** | **62.53%** |
+| Composite v1 | 45.0% | 55.25% |
+| Reward v2 | 45.5% | 56.83% |
 
-### Tool-use Behavior
+### Search Behavior
 
-| Method | Searches | Multi-search | Useful | Wasted |
-|---|---:|---:|---:|---:|
-| Qwen3-8B Base | 1.335 | 31.5% | 0.965 | 0.370 |
-| Vanilla GRPO, step 62 | 1.960 | 86.0% | 1.445 | 0.515 |
-| Reward v2 GRPO, step 62 | 1.675 | 64.0% | 1.250 | 0.425 |
-| Composite-reward GRPO, step 62 | 1.885 | 77.5% | 1.250 | 0.635 |
-| Fresh DAPO, step 62 | 1.100 | 10.0% | 0.880 | 0.220 |
+| Method | Searches | Multi-search | Useful | Wasted | Tool efficiency | Invalid action ↓ |
+|---|---:|---:|---:|---:|---:|---:|
+| Base | 1.335 | 31.5% | 0.965 | 0.370 | 72.28% | 10.06% |
+| **Vanilla GRPO** | 1.960 | 86.0% | 1.445 | 0.515 | 73.72% | **0.17%** |
+| Composite v1 | 1.885 | 77.5% | 1.250 | 0.635 | 66.31% | 0.52% |
+| Reward v2 | 1.675 | 64.0% | 1.250 | 0.425 | 74.63% | 0.37% |
 
-Fresh DAPO also reached 100% completion, 0% invalid actions, 80.0% tool
-efficiency (useful/executed), 0.3742 average task reward, and 2.10 average
-turns. Composite-reward GRPO reached 98.0% completion, 0.52% invalid actions,
-and 66.31% tool efficiency. It remains stronger than Base but does not exceed
-task-only GRPO: useful retrieval falls while wasted retrieval rises. Full
-provenance is in [experiments/results.md](experiments/results.md).
+Task-only GRPO gives the best answer quality. Reward v2 improves over Composite
+v1 and reduces wasted retrieval, but does not outperform Vanilla GRPO on task
+quality. Full provenance and artifact hashes are in
+[`experiments/results.md`](experiments/results.md).
 
-Reward v2 reached 99.0% completion, 0.37% invalid actions, and 74.63% tool
-efficiency. Relative to Composite v1, it improves EM/F1, preserves 1.250 useful
-searches per episode, and reduces wasted searches from 0.635 to 0.425. Relative
-to task-only GRPO, however, both useful retrieval and task quality fall. Reward
-v2 is therefore a better process-aware objective than Composite v1 in this run,
-but not a Pareto improvement over the task-only baseline.
+## Engineering Stack
 
-## Case Study: DAPO's One-search Collapse
+| Layer | Implementation |
+|---|---|
+| Model | Qwen3-8B, bf16 |
+| RL | verl, GRPO, grouped trajectory rewards |
+| Rollout | vLLM 0.11.0 async generation |
+| Distributed training | PyTorch FSDP + Ray |
+| Environment | Deterministic per-trajectory BM25 retrieval |
+| Protocol | Native ToolAgentLoop + CanonicalToolAgentLoop |
+| Evaluation | Hotpot-MT Strict + Natural Bridge-Hard |
+| Diagnostics | EM/F1, validity, turns, tokens, attempted/valid/executed/useful/wasted search |
 
-Fresh DAPO produced stable syntax—100% completion and no invalid actions—but
-converged toward:
-
-```text
-search once → answer
-```
-
-Compared with vanilla GRPO, multi-search fell from **86% to 10%**, while EM
-fell from **51.5% to 33.0%**. Wasted search also fell from 0.515 to 0.220, but
-this is **not treated as an efficiency improvement because reduced retrieval
-comes with a large task-quality regression**.
-
-The current diagnosis remains a working hypothesis: recipe-level changes
-encouraged a short, stable policy, and overlong accounting may be one
-contributor. The completed run did not apply its configured overlong term,
-while stock trajectory length is not agent-aware because tool observations
-share the sequence. A corrected assistant-only experiment is required before
-assigning causality. See the
-[DAPO diagnosis](analysis/dapo_diagnostics/README.md).
-
-## Engineering
-
-- **Policy:** Qwen3-8B in bf16.
-- **Rollouts:** vLLM 0.11.0 async generation, four trajectories per question.
-- **Training:** verl's unified PPO-family trainer, FSDP full sharding with
-  parameter/optimizer offload, and Ray orchestration.
-- **Runtime:** native multi-turn `ToolAgentLoop` plus a project-local adapter.
-- **Environment:** deterministic per-trajectory BM25 over HotpotQA distractor
-  passages; no live web dependency.
-- **Evaluation:** one held-out protocol for Base, GRPO, and DAPO, with complete
-  JSONL trajectories and behavioral metrics.
-- **Isolation:** upstream verl stays unmodified; project adapters and reward
-  managers live under `src/efficienttool_rl/verl/`.
+Upstream verl remains unmodified; project adapters and reward managers live
+under `src/efficienttool_rl/verl/`.
 
 ## Quick Start
 
 ```bash
-git clone <repository-url> toolagentlab
-cd toolagentlab
-python -m venv .venv
-source .venv/bin/activate
+git clone <repository-url> SearchAgent-RL
+cd SearchAgent-RL
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
 python scripts/smoke_agent_episode.py
-pytest -q
 ```
 
-The CPU smoke uses the actual parser, agent loop, and deterministic search
-tool. Model setup is in [the environment report](docs/environment_report.md).
+The CPU smoke uses the real parser, agent loop, and search environment. See the
+[`environment report`](docs/environment_report.md) for model setup.
 
-## Training
+## Training & Evaluation
 
 ```bash
 export VERL_CONFIG_PATH=/path/to/verl/verl/trainer/config
@@ -424,61 +272,45 @@ export ETRL_MODEL=/path/to/Qwen3-8B
 export ETRL_DATA_DIR=/path/to/prepared/parquet
 export ETRL_RUN_DIR=/path/to/run-output
 
+# Task-only GRPO or Reward v2
 python scripts/train_grpo.py --config-name qwen8b_hotpot_mt_strict
-python scripts/train_grpo.py --config-name qwen8b_hotpot_mt_strict_composite
-python scripts/train_dapo.py --config-name qwen8b_hotpot_mt_strict
-```
+python scripts/train_grpo.py --config-name qwen8b_hotpot_reward_v2
 
-Use a persistent session or scheduler for long runs. Verify GPU ownership, disk
-capacity, resolved config, and output location before launch.
-
-## Evaluation
-
-```bash
+# Held-out evaluation
 python scripts/evaluate.py \
   --data "$ETRL_DATA_DIR/verl_hotpotqa_mt_natural_bridge_hard_val_200.parquet" \
-  --model /path/to/checkpoint \
-  --output /path/to/eval/trajectories.jsonl \
-  --backend vllm \
-  --limit 200 \
-  --max-turns 5 \
-  --max-search-calls 3 \
-  --top-k 1 \
-  --max-top-k 1 \
-  --max-observation-tokens 384
+  --model /path/to/checkpoint --output /path/to/eval/trajectories.jsonl \
+  --backend vllm --limit 200 --max-turns 5 --max-search-calls 3 \
+  --top-k 1 --max-top-k 1 --max-observation-tokens 384
 ```
 
-Inspect stored results with:
+Use a persistent session and verify GPU ownership, disk, config, and output paths.
 
-```bash
-python scripts/analyze_rollouts.py --help
-python scripts/analyze_trajectories.py --help
-```
+## Additional Studies
+
+We also evaluated DAPO-style training as an auxiliary study. It converged to a
+conservative one-search policy and did not outperform Vanilla GRPO; see the
+[`DAPO diagnosis`](analysis/dapo_diagnostics/README.md).
+
+Further evidence: [results and provenance](experiments/results.md), [baseline protocol](experiments/baselines.md), [composite reward audit](analysis/composite_reward_pilot/README.md), and [current status](PROGRESS.md).
 
 ## Repository Structure
 
 ```text
-ToolAgentLab/
-├── configs/
-│   ├── grpo/                 # Vanilla and composite GRPO recipes
-│   ├── dapo/                 # DAPO recipes
-│   └── tool/                 # Tool schema and loop registration
-├── src/efficienttool_rl/     # Stable package; intentionally not renamed
-│   ├── agent.py              # Inspectable local episode loop
-│   ├── protocol.py           # Strict one-action parser
+SearchAgent-RL/
+├── configs/                  # GRPO, DAPO, and search-loop configuration
+├── src/efficienttool_rl/     # Core Python implementation (stable import path)
 │   ├── tools/                # Deterministic BM25 search
 │   ├── rewards/              # Task and process-aware rewards
-│   ├── evaluation/           # Task and behavior metrics
-│   └── verl/                 # Native adapters and DAPO reward manager
+│   ├── evaluation/           # Task and behavioral metrics
+│   └── verl/                 # Canonical loop and reward-manager adapters
 ├── scripts/                  # Data, training, evaluation, and analysis CLIs
-├── experiments/              # Stable results and provenance
-├── analysis/                 # Reward and failure analyses
+├── experiments/              # Verified results and provenance
+├── analysis/                 # Focused reward and failure studies
 ├── tests/                    # Unit and integration tests
-├── docs/archive/             # Historical milestone records
+├── docs/archive/             # Historical plans and superseded narratives
 ├── AGENTS.md                 # Research-engineering protocol
-└── PROGRESS.md               # Concise experiment status
+└── PROGRESS.md               # Current experiment status
 ```
 
-The repository currently has no project-level license. Upstream model,
-framework, and dataset licenses still apply; do not assume redistribution or
-derivative-use permission until a top-level license is added.
+The source package remains `efficienttool_rl` for import and artifact compatibility.

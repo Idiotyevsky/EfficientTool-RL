@@ -1,9 +1,8 @@
-# AGENTS.md — ToolAgentLab Research Engineering Protocol
+# AGENTS.md — SearchAgent-RL Research Engineering Protocol
 
-> **Project:** ToolAgentLab
+> **Project:** SearchAgent-RL
 >
-> **Mission:** A reproducible testbed for training and diagnosing multi-turn
-> tool agents with reinforcement learning.
+> **Mission:** Reinforcement Learning for Multi-turn Search Agents.
 
 This file governs engineering and experiment work. Public narrative belongs in
 `README.md`; historical milestone records belong in `docs/archive/`.
@@ -22,7 +21,7 @@ semantics, model family, or research question.
 
 ## 2. Current Research Scope
 
-ToolAgentLab studies how reinforcement-learning recipes change a multi-turn
+SearchAgent-RL studies how reinforcement-learning recipes change a multi-turn
 search agent:
 
 - Qwen3-8B policy;
@@ -31,7 +30,8 @@ search agent:
 - deterministic per-trajectory BM25;
 - strict one-action protocol;
 - native verl/vLLM multi-turn rollouts;
-- vanilla GRPO, DAPO, and process-aware reward comparisons;
+- vanilla GRPO and process-aware reward comparisons;
+- DAPO as an auxiliary recipe study;
 - task quality, protocol reliability, and tool behavior.
 
 Tool efficiency is one behavioral measurement, not the primary objective.
@@ -50,7 +50,7 @@ Out of scope unless explicitly approved:
 
 ## 3. Compatibility Invariants
 
-The public brand is **ToolAgentLab**, but the following identifiers remain
+The public brand is **SearchAgent-RL**, but the following identifiers remain
 stable:
 
 - Python package: `efficienttool_rl`;

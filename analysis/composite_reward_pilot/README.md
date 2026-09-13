@@ -1,4 +1,4 @@
-# ToolAgentLab Composite Reward Pilot
+# SearchAgent-RL Composite Reward Pilot
 
 The process-aware reward
 (`R = 0.8 answer + 0.15 evidence + 0.05 format`) was audited offline on stored

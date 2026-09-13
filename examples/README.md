@@ -1,4 +1,4 @@
-# ToolAgentLab Runnable Examples
+# SearchAgent-RL Runnable Examples
 
 These examples are thin entry points around modules under
 `src/efficienttool_rl/`. They exercise the same parser, search tool, episode

@@ -1,4 +1,4 @@
-# ToolAgentLab Baselines
+# SearchAgent-RL Baselines
 
 All values are reproduced from stored artifacts. Models, normalized datasets,
 checkpoints, and large trajectory files are kept outside Git; public reports

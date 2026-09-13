@@ -1,4 +1,4 @@
-"""Core components for ToolAgentLab."""
+"""Core components for SearchAgent-RL."""
 
 from .agent import AgentConfig, AgentRunner, EpisodeResult, JsonlTrajectoryWriter
 from .protocol import FinalAnswer, InvalidAction, ToolCall, parse_action

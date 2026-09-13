@@ -1,4 +1,4 @@
-# ToolAgentLab Experimental Results
+# SearchAgent-RL Experimental Results
 
 All completed rows below come from stored trajectory artifacts. Every policy is
 evaluated on the same Natural Bridge-Hard set: 200 official HotpotQA validation

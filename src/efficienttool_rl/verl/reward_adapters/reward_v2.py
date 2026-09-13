@@ -1,4 +1,4 @@
-"""verl custom-reward adapter for ToolAgentLab Reward v2."""
+"""verl custom-reward adapter for SearchAgent-RL Reward v2."""
 
 from __future__ import annotations
 

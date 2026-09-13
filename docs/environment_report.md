@@ -1,4 +1,4 @@
-# ToolAgentLab Reference Environment
+# SearchAgent-RL Reference Environment
 
 This report records the validated software stack for local inference and the
 verl/vLLM training path. Exact compatibility depends on GPU architecture; use a
@@ -30,7 +30,7 @@ current pipeline.
 ## Reproduction
 
 ```bash
-export ETRL_ROOT=/path/to/toolagentlab
+export ETRL_ROOT=/path/to/SearchAgent-RL
 export ETRL_MODEL=/path/to/Qwen3-1.7B
 export ETRL_DATA_DIR=/path/to/prepared/parquet
 export ETRL_RUN_DIR=/path/to/run-output

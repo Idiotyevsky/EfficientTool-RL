@@ -1,4 +1,4 @@
-# ToolAgentLab — Experiment Status
+# SearchAgent-RL — Experiment Status
 
 ## Current Focus
 
@@ -9,9 +9,10 @@ Qwen3-8B Base
   → Vanilla GRPO, task reward                [completed and evaluated]
   → GRPO, process-aware composite reward    [completed and evaluated]
   → GRPO, Reward v2                         [completed and evaluated]
-  → Fresh DAPO, task reward                 [completed and evaluated]
-  → Corrected assistant-only DAPO           [pending]
 ```
+
+Auxiliary study: Fresh DAPO is completed and evaluated; the corrected
+assistant-only DAPO experiment remains pending.
 
 All methods use the same strict multi-turn BM25 environment for training and
 the same Natural Bridge-Hard 200-example held-out protocol. Public conclusions

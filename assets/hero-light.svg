@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" role="img" aria-labelledby="title desc">
-  <title id="title">ToolAgentLab multi-turn tool-agent reinforcement learning architecture</title>
+  <title id="title">SearchAgent-RL multi-turn tool-agent reinforcement learning architecture</title>
   <desc id="desc">A Qwen agent turns a question into a tool call, receives a search observation, answers, and sends a reward to GRPO for a policy update.</desc>
   <defs>
     <marker id="arrow-primary" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto"><path d="M0 0L9 4.5L0 9Z" fill="#5B5CE2"/></marker>
