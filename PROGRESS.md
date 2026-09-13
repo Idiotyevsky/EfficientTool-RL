@@ -25,7 +25,7 @@ remain recipe-level unless a dedicated ablation isolates one component.
 Natural Bridge-Hard, 200 examples:
 
 | Method | EM | F1 | Searches | Multi-search | Useful | Wasted |
-|---|---:|---:|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Base | 32.5% | 42.03% | 1.335 | 31.5% | 0.965 | 0.370 |
 | Vanilla GRPO | 51.5% | 62.53% | 1.960 | 86.0% | 1.445 | 0.515 |
 
@@ -105,7 +105,7 @@ Pareto improvement over the task-only baseline.
 - Project-local assistant-only DAPO reward manager uses the response mask for
   generated-token length and logs assistant length, total trajectory length,
   penalty, and search count.
-- 104 unit/integration tests passed in the latest full validation.
+- 107 unit/integration tests passed in the latest full validation.
 
 ## Pending Experiment
 

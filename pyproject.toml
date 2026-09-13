@@ -17,6 +17,7 @@ test = ["pytest>=8.0"]
 data = ["datasets>=2.18"]
 hf = ["torch>=2.4", "transformers>=4.45"]
 rl = ["hydra-core>=1.3", "ray>=2.30"]
+plot = ["matplotlib>=3.8", "pandas>=2.0", "seaborn>=0.13"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

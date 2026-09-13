@@ -17,7 +17,7 @@
   <img alt="GRPO" src="https://img.shields.io/badge/RL-GRPO-0891b2">
   <img alt="verl" src="https://img.shields.io/badge/Training-verl-334155">
   <img alt="vLLM" src="https://img.shields.io/badge/Rollout-vLLM-334155">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-104%20passed-16a34a">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-107%20passed-16a34a">
 </p>
 
 <picture>
@@ -349,6 +349,30 @@ are never exposed in the model prompt, search query, or tool observation.
 See [`reward_v2.py`](src/efficienttool_rl/rewards/reward_v2.py) and its
 [`training config`](configs/grpo/qwen8b_hotpot_reward_v2.yaml).
 
+### Reward v2 Training Dynamics
+
+The curves below are aggregated directly from all 62 rollout steps and the
+eight observed Hotpot-MT Strict validation checkpoints. Training lines show a
+five-step centered rolling mean over faint raw values; validation points are
+not interpolated.
+
+![Reward v2 training reward, strict validation quality, search behavior, and episode outcomes](assets/training-curves/reward-v2/training_overview.svg)
+
+Two diagnostic panels preserve the optimization and reward-component views:
+
+- [Optimization health: gradient norm, entropy, KL, advantage, group variance,
+  and step time](assets/training-curves/reward-v2/optimization_health.svg)
+- [Reward components: evidence coefficient, marginal evidence, and search
+  penalty](assets/training-curves/reward-v2/reward_components.svg)
+
+The exported [long-form metrics](assets/training-curves/reward-v2/metrics_long.csv)
+and [plot manifest](assets/training-curves/reward-v2/plot_manifest.json) make
+the figures auditable without publishing machine-specific paths.
+
+These in-training validation curves use the 100-example strict validation
+split. The Natural Bridge-Hard results reported below remain the external
+200-example evaluation comparison.
+
 ### Reward Evolution
 
 | Version        | Main design                                                        | Result                                                        |
@@ -443,7 +467,7 @@ Complete experiment provenance and artifact hashes are recorded in
 | Agent runtime        | Native ToolAgentLoop + CanonicalToolAgentLoop |
 | Dataset              | HotpotQA multi-hop QA                         |
 | Evaluation           | Answer quality + search-policy behavior       |
-| Tests                | 104 unit/integration tests                    |
+| Tests                | 107 unit/integration tests                    |
 
 Upstream verl remains unmodified. Project-specific agent-loop and reward-manager
 integrations are isolated under
@@ -473,7 +497,7 @@ checkpoint.
 ### 1. Prepare the environment
 
 ```bash
-git clone https://github.com/Idiotyevsky/EfficientTool-RL.git SearchAgent-RL
+git clone https://github.com/Idiotyevsky/SearchAgent-RL.git
 cd SearchAgent-RL
 
 python -m venv .venv
@@ -625,6 +649,22 @@ python scripts/smoke_agent_episode.py \
 The CPU example validates the action parser and search tool. The full suite also
 covers verl adapters, while the model-backed smoke verifies a generated Tool
 Call, observation feedback, and final answer.
+
+### Regenerate Training Curves
+
+```bash
+pip install -e ".[plot]"
+
+python scripts/plot_training_curves.py \
+  --run "Reward v2=/path/to/run/qwen8b_grpo_reward_v2_hotpot_mt_strict_2000_seed42" \
+  --log "Reward v2=/path/to/run/train.log" \
+  --output-dir assets/training-curves/reward-v2 \
+  --formats png svg
+```
+
+Pass repeated `--run LABEL=DIR` and `--log LABEL=FILE` arguments to overlay
+comparable runs. If training resumed, pass its console logs in chronological
+order under the same label; metrics from later logs replace duplicate steps.
 
 ---
 
